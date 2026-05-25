@@ -226,4 +226,4 @@ Built in partnership with **[Alectra Utilities](https://www.alectra.com/)** — 
 
 ---
 
-_GridPulse · Hackathon 2025 · Challenge 2 · Problem Statement 03 · Ontario, Canada_
+_Zeus · Hackathon 2026 · Challenge 2 · Problem Statement 03 · Ontario, Canada_
