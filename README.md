@@ -1,8 +1,8 @@
-# ⚡ GridPulse — Ontario EV Intelligence Platform
+# Ontario EV Intelligence Platform
 
 Zeus is God. Or Zeus was God? And was he a God at all? Maybe for the Ancient Greek philosophers he was. And maybe he is now, meaning, we still have records of those philosophers talking of him as God. So is the godness, imagination of it, the cultural understanding of the cosmos and of the creation, is it all relative or is there a certainty in the concepts and words we use to describe anything specific? God, language is so complicated, how did we even start talking to each other and how is there a bear minimum of understanding between us and the things we try to express to each other?
 
-Anyway, luckily, you don't need to bother about any of this information, and we also wouldn't do so. What we have today on the agenda is Zeus — an innovative Hackathon project and solution to predict the EVs energy demand across Toronto and the broader area of Ontario. Already excited? Well, get on board with us, we accept everybody — cuz we don't claim to be gods ;D
+Anyway, luckily, you don't need to bother about any of this information, and we also wouldn't do so. What we have today on the agenda is Zeus an innovative Hackathon project and solution to predict the EVs energy demand across Toronto and the broader area of Ontario. Already excited? Well, get on board with us, we accept everybody cuz we don't claim to be gods ;D
 
 ---
 
@@ -10,29 +10,30 @@ Anyway, luckily, you don't need to bother about any of this information, and we 
 
 EV adoption in Ontario is accelerating faster than utilities can plan for.
 
-Ontario BEV registrations grew **49% year-over-year in 2024**, reaching 124,911 vehicles. Two macro forces are set to push that curve far beyond historical trends — and Alectra's grid wasn't built for what's coming. Without a proactive forecasting tool, distribution utilities face three converging risks:
+Ontario BEV registrations grew **49% year-over-year in 2024**, reaching 124,911 vehicles. Two macro forces are set to push that curve far beyond historical trends and Alectra's grid wasn't built for what's coming. Without a proactive forecasting tool, distribution utilities face three converging risks:
 
-- **Feeder overload** from unplanned charging demand — especially during evening peaks when a cluster of new EVs begins charging simultaneously on a circuit designed for a different load profile.
-- **Reactive capital spending** — utilities discover grid constraints only after interconnection applications are filed, leading to costly expedited upgrades and 18+ month connection backlogs.
-- **Inequitable infrastructure planning** — charger investment follows existing demand rather than future need, systematically underserving low-income and high-density communities where residents cannot charge at home.
+- **Feeder overload** from unplanned charging demand especially during evening peaks when a cluster of new EVs begins charging simultaneously on a circuit designed for a different load profile.
+- **Reactive capital spending** utilities discover grid constraints only after interconnection applications are filed, leading to costly expedited upgrades and 18+ month connection backlogs.
+- **Inequitable infrastructure planning** charger investment follows existing demand rather than future need, systematically underserving low-income and high-density communities where residents cannot charge at home.
 
 > Distribution upgrades now account for **30–60% of total EV charging project costs** in constrained areas. GridPulse exists to move that spend from reactive to proactive.
 
 ### Two macro demand accelerators
 
 **Middle East conflict — oil price shock**
-The disruption to the Strait of Hormuz (which carries ~20% of the world's oil) sent Brent crude up ~65% in March 2026, pushing Ontario pump prices to $2.01/L in early April. Research shows petrol drivers are five times more exposed to oil price spikes than EV owners. GridPulse models this as a quantified demand multiplier — measuring the historical correlation between Ontario gas prices sustained above $1.80/L and quarter-over-quarter EV registration growth.
+
+The disruption to the Strait of Hormuz (which carries ~20% of the world's oil) sent Brent crude up ~65% in March 2026, pushing Ontario pump prices to $2.01/L in early April. Research shows petrol drivers are five times more exposed to oil price spikes than EV owners. GridPulse models this as a quantified demand multiplier measuring the historical correlation between Ontario gas prices sustained above $1.80/L and quarter-over-quarter EV registration growth.
 
 **Affordable EV market entry — the price floor drop**
-The January 2026 Canada-China trade deal allows up to 49,000 Chinese EVs annually into Canada at 6.1% tariff (down from a prohibitive 100%). BYD is opening 20 Ontario dealerships in 2026 with models priced $25,000–$42,000. The cheapest EV in Canada was previously ~$45,000 — beyond reach for most Ontario households whose median individual income is ~$42,000. Sub-$35K vehicles unlock an estimated **2.1 million Ontario households** concentrated in exactly the FSAs served by Alectra.
+The January 2026 Canada-China trade deal allows up to 49,000 Chinese EVs annually into Canada at 6.1% tariff (down from a prohibitive 100%). BYD is opening 20 Ontario dealerships in 2026 with models priced $25,000–$42,000. The cheapest EV in Canada was previously ~$45,000 beyond reach for most Ontario households whose median individual income is ~$42,000. Sub-$35K vehicles unlock an estimated **2.1 million Ontario households** concentrated in exactly the FSAs served by Alectra.
 
-If gas stays above $1.90/L through 2027 AND affordable sub-$35K EVs enter market, GridPulse projects Ontario BEV registrations reaching **600,000–700,000 by 2029** — roughly 40–65% above base case. That changes the number of Alectra feeders projected to hit critical capacity from 3 to potentially 11 or more.
+If gas stays above $1.90/L through 2027 AND affordable sub-$35K EVs enter market, GridPulse projects Ontario BEV registrations reaching **600,000–700,000 by 2029** roughly 40–65% above base case. That changes the number of Alectra feeders projected to hit critical capacity from 3 to potentially 11 or more.
 
 ---
 
 ## What GridPulse Does
 
-GridPulse is a web platform giving Ontario electricity distributors a neighbourhood-level, 5-year forward view of where EV charging demand will spike, where chargers should be built, and what grid upgrades to prioritize — before the crisis arrives, not after.
+GridPulse is a web platform giving Ontario electricity distributors a neighbourhood-level, 5-year forward view of where EV charging demand will spike, where chargers should be built, and what grid upgrades to prioritize before the crisis arrives, not after.
 
 | Module                                | What it does                                                                                                                                                                                                 |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -57,14 +58,14 @@ Use MTO quarterly registration data combined with StatCan income and housing dat
 
 ### Use case 2 — Feeder stress dashboard
 
-Translate the EV forecasts into peak kW demand using a charging behaviour model — percentage of EVs charging 6–9 PM multiplied by Level 2 load (~7.2 kW) — then flag which feeders cross 80% capacity and by when. This is the "so that I can" of the entire platform. It's the direct output a distribution planner acts on: not an interesting chart, but a ranked list of circuits that need capital attention before a specific date.
+Translate the EV forecasts into peak kW demand using a charging behaviour model percentage of EVs charging 6–9 PM multiplied by Level 2 load (~7.2 kW) then flag which feeders cross 80% capacity and by when. This is the "so that I can" of the entire platform. It's the direct output a distribution planner acts on: not an interesting chart, but a ranked list of circuits that need capital attention before a specific date.
 
 **Inputs:** Stage 1 EV counts per FSA, charging behaviour parameters by neighbourhood type, OEB feeder GIS boundary data, current feeder capacity ratings.
-**Output:** Feeder risk register — capacity utilization % per feeder per quarter through 2031, with projected overload date and recommended action.
+**Output:** Feeder risk register capacity utilization % per feeder per quarter through 2031, with projected overload date and recommended action.
 
 ### Use case 3 — Scenario simulation with macro shocks
 
-Add two sliders: one for gas price sustained above $1.80/L, one for sub-$35K EV market entry. Show how the feeder risk map changes under each scenario in real time. This is the demo moment — it makes the model feel alive and directly ties the solution to the two real forces driving Ontario EV growth right now. Judges and Alectra planners can see, with a single drag, what the Middle East conflict or BYD's Ontario expansion means for their specific feeders.
+Add two sliders: one for gas price sustained above $1.80/L, one for sub-$35K EV market entry. Show how the feeder risk map changes under each scenario in real time. This is the demo moment it makes the model feel alive and directly ties the solution to the two real forces driving Ontario EV growth right now. Judges and Alectra planners can see, with a single drag, what the Middle East conflict or BYD's Ontario expansion means for their specific feeders.
 
 **Inputs:** Gas price threshold slider (baseline / $1.80/L sustained / $2.00/L sustained), affordable EV entry toggle (none / sub-$35K / sub-$25K), base forecast.
 **Output:** Live-updating feeder risk map showing how many additional feeders cross the 80% threshold under each scenario and how many years sooner overload arrives.
@@ -207,7 +208,7 @@ GridPulse directly supports all three of Alectra's 2027–2031 Distribution Syst
 
 > Without a demand forecast, Alectra's $46.2M investment in Vaughan alone in 2026 goes in partly blind. The managed charging capital deferral model shows that demand management programs could delay **$180M+ in feeder upgrade costs** across the territory.
 
-**One-sentence pitch:** GridPulse gives you a neighbourhood-level, 5-year forecast of where EV charging demand will spike in your service territory — incorporating gas price shocks, affordable vehicle market entry, and Ontario-specific income data — so your $3.1 billion investment plan puts grid upgrades in the right place before the crisis, not after.
+**One-sentence pitch:** GridPulse gives you a neighbourhood-level, 5-year forecast of where EV charging demand will spike in your service territory incorporating gas price shocks, affordable vehicle market entry, and Ontario-specific income data — so your $3.1 billion investment plan puts grid upgrades in the right place before the crisis, not after.
 
 ---
 
