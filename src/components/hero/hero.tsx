@@ -49,7 +49,7 @@ export default function Hero() {
 
         <p className="hero-sub">
           ZEUS models EV adoption, infrastructure strain, and regional energy demand
-          across Ontario — five years ahead of the crisis.
+          across Ontario five years ahead of the crisis.
         </p>
 
         <div className="hero-actions">

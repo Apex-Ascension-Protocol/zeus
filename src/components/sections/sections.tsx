@@ -196,10 +196,10 @@ function ProblemSection() {
           </div>
           <div className="prob-head-right">
             <p className="prob-intro">
-              EV adoption is outpacing every utility model — and the macro tailwinds
-              keep compounding. Iran-region tensions have pushed Ontario gas past
+              EV adoption is outpacing every utility model and the macro tailwinds
+              keep compounding. Iran region tensions have pushed Ontario gas past
               $2/L, while any softening of Canada&apos;s 100% tariff on Chinese-built EVs
-              would release a wave of sub-$25K models into the market. Without
+              would release a wave of sub $25K models into the market. Without
               proactive forecasting, distribution networks face feeder overloads,
               reactive capital spending, and systematically inequitable infrastructure.
             </p>
@@ -293,8 +293,8 @@ function SolutionSection() {
             One <span className="serif-i sol-serif-i">intelligence</span> layer.
           </h2>
           <p className="sol-intro">
-            ZEUS operates as a cohesive pipeline — automated data ingestion, machine
-            learning, spatial analysis, and dashboard visualisation — delivering six
+            ZEUS operates as a cohesive pipeline automated data ingestion, machine
+            learning, spatial analysis, and dashboard visualisation delivering six
             capabilities that distribution planners act on directly.
           </p>
         </div>
@@ -369,8 +369,8 @@ function CTASection() {
           <span className="serif-i">before</span> it arrives.
         </h2>
         <p className="cta-sub">
-          ZEUS gives utility planners a neighbourhood-level, 5-year forecast of where
-          demand will spike — built on every macro signal conventional models miss.
+          ZEUS gives utility planners a neighbourhood-level, 5 year forecast of where
+          demand will spike built on every macro signal conventional models miss.
           Move your capital programme from reactive to proactive.
         </p>
 
