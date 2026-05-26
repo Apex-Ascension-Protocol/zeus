@@ -1,139 +1,63 @@
+import Image from 'next/image'
 import './hero.css'
 
-function DemandChart() {
+/* ─────────────────────────────────────────────
+   IMAGE PLACEHOLDER  ·  drop in real screenshots later
+   ───────────────────────────────────────────── */
+function ImgPlaceholder({
+  label,
+  hint,
+  className = '',
+}: {
+  label: string
+  hint?: string
+  className?: string
+}) {
   return (
-    <svg viewBox="0 0 320 160" className="chart-svg" aria-label="Grid demand forecast">
-      <defs>
-        <linearGradient id="forecastGradient" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgba(255,255,255,.18)" />
-          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-        </linearGradient>
-      </defs>
-
-      {[20, 50, 80, 110, 140].map((y) => (
-        <line
-          key={y}
-          x1="0"
-          y1={y}
-          x2="320"
-          y2={y}
-          stroke="rgba(255,255,255,.06)"
-          strokeWidth="1"
+    <div className={`img-ph ${className}`}>
+      <svg viewBox="0 0 24 24" className="img-ph-icon" fill="none" aria-hidden="true">
+        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.2" />
+        <circle cx="8.5" cy="9" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+        <path
+          d="M21 15l-5-5L5 21"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
-      ))}
-
-      <path
-        d="M0 126 C40 118 78 110 120 92 C160 75 205 52 248 34 C275 23 298 18 320 14"
-        fill="none"
-        stroke="rgba(255,255,255,.92)"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-      />
-
-      <path
-        d="M0 126 C40 118 78 110 120 92 C160 75 205 52 248 34 C275 23 298 18 320 14 L320 160 L0 160 Z"
-        fill="url(#forecastGradient)"
-      />
-
-      <circle cx="320" cy="14" r="4" fill="white" />
-    </svg>
+      </svg>
+      <span className="img-ph-label">{label}</span>
+      {hint && <span className="img-ph-hint">{hint}</span>}
+    </div>
   )
 }
 
-function PieChart() {
-  return (
-    <svg viewBox="0 0 120 120" className="pie-svg" aria-label="Infrastructure allocation">
-      <circle
-        cx="60"
-        cy="60"
-        r="42"
-        fill="none"
-        stroke="rgba(255,255,255,.08)"
-        strokeWidth="16"
-      />
-
-      <circle
-        cx="60"
-        cy="60"
-        r="42"
-        fill="none"
-        stroke="rgba(255,255,255,.92)"
-        strokeWidth="16"
-        strokeDasharray="158 264"
-        strokeLinecap="round"
-        transform="rotate(-90 60 60)"
-      />
-
-      <circle
-        cx="60"
-        cy="60"
-        r="42"
-        fill="none"
-        stroke="rgba(255,255,255,.42)"
-        strokeWidth="16"
-        strokeDasharray="62 264"
-        strokeLinecap="round"
-        transform="rotate(125 60 60)"
-      />
-    </svg>
-  )
-}
-
-function OntarioMap() {
-  return (
-    <svg viewBox="0 0 400 260" className="map-svg" aria-label="Ontario energy demand map">
-      <path
-        d="M56 132L96 72L148 54L208 66L250 46L314 88L350 148L316 194L252 216L188 202L138 224L88 194Z"
-        fill="rgba(255,255,255,.04)"
-        stroke="rgba(255,255,255,.12)"
-        strokeWidth="1.2"
-      />
-
-      <circle cx="142" cy="120" r="10" className="map-dot high" />
-      <circle cx="210" cy="92" r="8" className="map-dot med" />
-      <circle cx="262" cy="146" r="12" className="map-dot critical" />
-      <circle cx="188" cy="174" r="7" className="map-dot low" />
-
-      <path
-        d="M142 120 C180 108 228 110 262 146"
-        stroke="rgba(255,255,255,.22)"
-        strokeWidth="1"
-        strokeDasharray="4 5"
-        fill="none"
-      />
-
-      <path
-        d="M188 174 C198 150 206 120 210 92"
-        stroke="rgba(255,255,255,.14)"
-        strokeWidth="1"
-        strokeDasharray="4 5"
-        fill="none"
-      />
-    </svg>
-  )
-}
-
+/* ─────────────────────────────────────────────
+   HERO
+   ───────────────────────────────────────────── */
 export default function Hero() {
   return (
     <section className="hero">
-
       <div className="hero-text">
-        <div className="hero-badge">
-          Predictive Grid Intelligence
-        </div>
+        <div className="hero-badge">Predictive Grid Intelligence</div>
 
         <h1 className="hero-h1">
-          Forecasting energy demand before the surge arrives.
+          Forecasting the <span className="hero-h1-accent">grid</span>
+          <br />
+          before the surge arrives.
         </h1>
 
         <p className="hero-sub">
           ZEUS models EV adoption, infrastructure strain, and regional energy demand
-          across Ontario in real time.
+          across Ontario — five years ahead of the crisis.
         </p>
 
         <div className="hero-actions">
           <a href="#platform" className="btn-primary">
             Explore Platform
+          </a>
+          <a href="#problem" className="btn-secondary">
+            See the Problem
           </a>
         </div>
       </div>
@@ -141,98 +65,124 @@ export default function Hero() {
       <div className="window-wrap">
         <div className="window">
 
+          {/* ─── Window chrome: traffic-lights left, logo centered, empty right ─── */}
           <div className="window-top">
-            <div className="window-controls">
+            <div className="window-controls" aria-hidden="true">
               <span className="wc red" />
               <span className="wc yellow" />
               <span className="wc green" />
             </div>
 
-            <div className="window-nav">
-              <span className="window-tab active">Overview</span>
-              <span className="window-tab">Forecasting</span>
-              <span className="window-tab">Infrastructure</span>
+            <div className="window-logo">
+              <Image
+                src="/logo_zeus.png"
+                alt="ZEUS"
+                width={72}
+                height={22}
+                className="window-logo-img"
+                priority
+              />
             </div>
 
-            <div className="window-status">
-              Live · Ontario
-            </div>
+            {/* spacer to keep logo perfectly centered */}
+            <div className="window-spacer" aria-hidden="true" />
           </div>
 
+          {/* ─── Window body: all panels are image placeholders ─── */}
           <div className="window-body">
 
-            <div className="window-left">
-              <div className="panel large">
-                <div className="panel-head">
-                  <div>
-                    <span className="panel-label">Regional Demand Map</span>
-                    <h3>Ontario grid stress index</h3>
-                  </div>
-
-                  <span className="panel-pill">
-                    2026–2031
-                  </span>
+            {/* MAP */}
+            <div className="panel panel-map">
+              <div className="panel-head">
+                <div>
+                  <span className="panel-label">Regional Demand</span>
+                  <h3>Ontario stress index</h3>
                 </div>
-
-                <OntarioMap />
+                <span className="panel-pill">2026 — 2031</span>
               </div>
-
-              <div className="stats-row">
-                <div className="stat-card">
-                  <span className="stat-label">Projected EV Growth</span>
-                  <strong>+214%</strong>
-                </div>
-
-                <div className="stat-card">
-                  <span className="stat-label">Critical Feeders</span>
-                  <strong>18</strong>
-                </div>
-
-                <div className="stat-card">
-                  <span className="stat-label">Load Increase</span>
-                  <strong>31%</strong>
-                </div>
-              </div>
+               <Image
+                src="/stress.jpeg"
+                alt="Ontario stress map"
+                width={1600}
+                height={100}
+                className="ph-map"
+              />
             </div>
 
-            <div className="window-right">
-
-              <div className="panel">
-                <div className="panel-head">
-                  <div>
-                    <span className="panel-label">Demand Forecast</span>
-                    <h3>Provincial energy consumption</h3>
-                  </div>
+            {/* PIE */}
+            <div className="panel panel-pie">
+              <div className="panel-head">
+                <div>
+                  <span className="panel-label">Consumption Mix</span>
+                  <h3>Electricity by sector</h3>
                 </div>
-
-                <DemandChart />
               </div>
+               <Image
+                src="/pie2.jpeg"
+                alt="Ontario stress map"
+                width={700}
+                height={200}
+                className="ph-map"
+              />
+            </div>
 
-              <div className="panel split">
-                <div className="panel-copy">
-                  <span className="panel-label">
-                    Infrastructure Allocation
-                  </span>
-
-                  <h3>
-                    Deployment readiness across high-growth regions.
-                  </h3>
-
-                  <p>
-                    Forecasting transformer saturation and charging expansion
-                    requirements before peak demand.
-                  </p>
+            {/* BAR */}
+            <div className="panel panel-bar">
+              <div className="panel-head">
+                <div>
+                  <span className="panel-label">FSA Growth</span>
+                  <h3>BEV adoption forecast</h3>
                 </div>
-
-                <PieChart />
+                <span className="panel-pill">+214% avg</span>
               </div>
+              <Image
+                src="/growth.jpeg"
+                alt="Ontario stress map"
+                width={500}
+                height={200}
+                className="ph-map"
+              />
+            </div>
 
+            {/* LINE */}
+            <div className="panel panel-line">
+              <div className="panel-head">
+                <div>
+                  <span className="panel-label">Provincial Demand</span>
+                  <h3>Energy consumption curve</h3>
+                </div>
+                <span className="panel-pill">live</span>
+              </div>
+              <Image
+                src="/residential.jpeg"
+                alt="Ontario stress map"
+                width={900}
+                height={300}
+                className="ph-map"
+              />
+            </div>
+
+            {/* TABLE */}
+            <div className="panel panel-table">
+              <div className="panel-head">
+                <div>
+                  <span className="panel-label">Feeder Risk Register</span>
+                  <h3>Capacity overload schedule</h3>
+                </div>
+                <span className="panel-pill">11 flagged</span>
+              </div>
+             <Image
+                src="/chart.jpeg"
+                alt="Ontario stress map"
+                width={1260}
+                height={500}
+                className="ph-map"
+              />
             </div>
 
           </div>
         </div>
       </div>
-
     </section>
   )
 }
