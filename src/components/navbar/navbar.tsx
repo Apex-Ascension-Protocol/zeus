@@ -1,43 +1,43 @@
-'use client'
+"use client";
 
-import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
-import './navbar.css'
+import Image from "next/image";
+import { useEffect, useRef, useState } from "react";
+import "./navbar.css";
 
 const NAV_LINKS = [
-  { label: 'Platform', href: '#platform' },
-  { label: 'How It Works', href: '#how-it-works' },
-  { label: 'Data', href: '#data' },
-]
+  { label: "Platform", href: "/platform" },
+  { label: "How It Works", href: "/#how-it-works" },
+  { label: "Data", href: "/#data" },
+  { label: "Simulator", href: "/simulator" },
+];
 
 export default function Navbar() {
-  const [visible, setVisible] = useState(true)
-  const lastY = useRef(0)
+  const [visible, setVisible] = useState(true);
+  const lastY = useRef(0);
 
   useEffect(() => {
     const onScroll = () => {
-      const y = window.scrollY
+      const y = window.scrollY;
 
       if (y > lastY.current + 4) {
-        setVisible(false)
+        setVisible(false);
       } else if (y < lastY.current - 4) {
-        setVisible(true)
+        setVisible(true);
       }
 
-      lastY.current = y
-    }
+      lastY.current = y;
+    };
 
-    window.addEventListener('scroll', onScroll, { passive: true })
+    window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
-      window.removeEventListener('scroll', onScroll)
-    }
-  }, [])
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
 
   return (
-    <header className={`navbar ${visible ? '' : 'nav-hidden'}`}>
+    <header className={`navbar ${visible ? "" : "nav-hidden"}`}>
       <nav className="nav-inner" aria-label="Main navigation">
-
         {/* Left — nav links */}
         <ul className="nav-links" role="list">
           {NAV_LINKS.map((l) => (
@@ -69,8 +69,7 @@ export default function Navbar() {
             Watch Demo
           </a>
         </div>
-
       </nav>
     </header>
-  )
+  );
 }
