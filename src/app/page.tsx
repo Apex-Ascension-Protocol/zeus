@@ -1,7 +1,3 @@
-import Navbar from '@/components/navbar/navbar'
-import Hero from '@/components/hero/hero'
-import Sections from '@/components/sections/sections'
-
 export default function Home() {
   return (
     <main className="min-h-screen bg-[#0a0f1e] text-white overflow-x-hidden">
