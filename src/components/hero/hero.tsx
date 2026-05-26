@@ -1,5 +1,5 @@
-import Image from 'next/image'
-import './hero.css'
+import Image from "next/image";
+import "./hero.css";
 
 /* ─────────────────────────────────────────────
    IMAGE PLACEHOLDER  ·  drop in real screenshots later
@@ -7,17 +7,36 @@ import './hero.css'
 function ImgPlaceholder({
   label,
   hint,
-  className = '',
+  className = "",
 }: {
-  label: string
-  hint?: string
-  className?: string
+  label: string;
+  hint?: string;
+  className?: string;
 }) {
   return (
     <div className={`img-ph ${className}`}>
-      <svg viewBox="0 0 24 24" className="img-ph-icon" fill="none" aria-hidden="true">
-        <rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="1.2" />
-        <circle cx="8.5" cy="9" r="1.5" stroke="currentColor" strokeWidth="1.2" />
+      <svg
+        viewBox="0 0 24 24"
+        className="img-ph-icon"
+        fill="none"
+        aria-hidden="true"
+      >
+        <rect
+          x="3"
+          y="3"
+          width="18"
+          height="18"
+          rx="2"
+          stroke="currentColor"
+          strokeWidth="1.2"
+        />
+        <circle
+          cx="8.5"
+          cy="9"
+          r="1.5"
+          stroke="currentColor"
+          strokeWidth="1.2"
+        />
         <path
           d="M21 15l-5-5L5 21"
           stroke="currentColor"
@@ -29,7 +48,7 @@ function ImgPlaceholder({
       <span className="img-ph-label">{label}</span>
       {hint && <span className="img-ph-hint">{hint}</span>}
     </div>
-  )
+  );
 }
 
 /* ─────────────────────────────────────────────
@@ -48,12 +67,12 @@ export default function Hero() {
         </h1>
 
         <p className="hero-sub">
-          ZEUS models EV adoption, infrastructure strain, and regional energy demand
-          across Ontario five years ahead of the crisis.
+          ZEUS models EV adoption, infrastructure strain, and regional energy
+          demand across Ontario five years ahead of the crisis.
         </p>
 
         <div className="hero-actions">
-          <a href="#platform" className="btn-primary">
+          <a href="platform" className="btn-primary">
             Explore Platform
           </a>
           <a href="#problem" className="btn-secondary">
@@ -64,7 +83,6 @@ export default function Hero() {
 
       <div className="window-wrap">
         <div className="window">
-
           {/* ─── Window chrome: traffic-lights left, logo centered, empty right ─── */}
           <div className="window-top">
             <div className="window-controls" aria-hidden="true">
@@ -90,7 +108,6 @@ export default function Hero() {
 
           {/* ─── Window body: all panels are image placeholders ─── */}
           <div className="window-body">
-
             {/* MAP */}
             <div className="panel panel-map">
               <div className="panel-head">
@@ -100,7 +117,7 @@ export default function Hero() {
                 </div>
                 <span className="panel-pill">2026 — 2031</span>
               </div>
-               <Image
+              <Image
                 src="/stress.jpeg"
                 alt="Ontario stress map"
                 width={1600}
@@ -117,7 +134,7 @@ export default function Hero() {
                   <h3>Electricity by sector</h3>
                 </div>
               </div>
-               <Image
+              <Image
                 src="/pie2.jpeg"
                 alt="Ontario stress map"
                 width={700}
@@ -171,7 +188,7 @@ export default function Hero() {
                 </div>
                 <span className="panel-pill">11 flagged</span>
               </div>
-             <Image
+              <Image
                 src="/chart.jpeg"
                 alt="Ontario stress map"
                 width={1260}
@@ -179,10 +196,9 @@ export default function Hero() {
                 className="ph-map"
               />
             </div>
-
           </div>
         </div>
       </div>
     </section>
-  )
+  );
 }
