@@ -45,7 +45,8 @@ export default function Home() {
         <p className="text-white/50 text-lg max-w-2xl mx-auto leading-relaxed mb-10">
           Zeus gives utilities like Alectra real-time visibility into EV
           charging demand spikes — combining public APIs, predictive modeling,
-          and optimal station placement to future-proof Ontario's power grid.
+          and optimal station placement to future-proof Ontario&apos;s power
+          grid.
         </p>
 
         <div className="flex items-center justify-center gap-4 flex-wrap">
