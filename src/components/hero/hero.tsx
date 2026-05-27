@@ -1,3 +1,5 @@
+"use client";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import "./hero.css";
 
@@ -55,9 +57,16 @@ function ImgPlaceholder({
    HERO
    ───────────────────────────────────────────── */
 export default function Hero() {
+  const [animated, setAnimated] = useState(false);
+  useEffect(() => {
+    setAnimated(false);
+    const t = requestAnimationFrame(() => setAnimated(true));
+    return () => cancelAnimationFrame(t);
+  }, []);
+
   return (
     <section className="hero">
-      <div className="hero-text">
+      <div className={`hero-text${animated ? " hero-animate" : ""}`}>
         <div className="hero-badge">Predictive Grid Intelligence</div>
 
         <h1 className="hero-h1">
@@ -81,7 +90,7 @@ export default function Hero() {
         </div>
       </div>
 
-      <div className="window-wrap">
+      <div className={`window-wrap${animated ? " window-animate" : ""}`}>
         <div className="window">
           {/* ─── Window chrome: traffic-lights left, logo centered, empty right ─── */}
           <div className="window-top">

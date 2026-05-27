@@ -1,68 +1,73 @@
-'use client'
+"use client";
 
-import Image from 'next/image'
-import Link from 'next/link'
-import { useEffect, useRef, useState, useCallback } from 'react'
-import maplibregl, { Map as MLMap, Marker, Popup } from 'maplibre-gl'
-import 'maplibre-gl/dist/maplibre-gl.css'
-import './platform.css'
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useRef, useState, useCallback } from "react";
+import maplibregl, { Map as MLMap, Marker, Popup } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import "./platform.css";
 
 /* ─────────────────────────────────────────────
    TYPES & MOCK DATA
    ───────────────────────────────────────────── */
 
-type Level = 'critical' | 'high' | 'moderate' | 'low'
+type Level = "critical" | "high" | "moderate" | "low";
 
-type FactorTone = 'critical' | 'high' | 'moderate' | 'low' | 'mute'
+type FactorTone = "critical" | "high" | "moderate" | "low" | "mute";
 
 interface City {
-  name: string
+  name: string;
   /** Real geographic coordinates: [lng, lat] */
-  coords: [number, number]
+  coords: [number, number];
 }
 
 interface Corridor {
-  id: string
-  name: string
-  short: string
-  from: City
-  to: City
-  level: Level
-  stressIndex: number
-  delta: number
-  trend: number[]                 // 7-day index trend
-  customers: number
-  customersDelta: number
-  outageRisk: number              // %
-  outageRiskDelta: number
-  infraAtRisk: number
-  infraDelta: number
-  factors: { label: string; pct: number; tone: FactorTone }[]
-  alerts: { tone: 'critical' | 'warning'; title: string; subtitle: string; time: string }[]
+  id: string;
+  name: string;
+  short: string;
+  from: City;
+  to: City;
+  level: Level;
+  stressIndex: number;
+  delta: number;
+  trend: number[]; // 7-day index trend
+  customers: number;
+  customersDelta: number;
+  outageRisk: number; // %
+  outageRiskDelta: number;
+  infraAtRisk: number;
+  infraDelta: number;
+  factors: { label: string; pct: number; tone: FactorTone }[];
+  alerts: {
+    tone: "critical" | "warning";
+    title: string;
+    subtitle: string;
+    time: string;
+  }[];
   bottom: {
-    monitored: number
-    monitoredDelta: number        // %
-    online: number
-    onlinePct: number             // %
-    outOfService: number
-    outDelta: number              // %
-    weather: 'LOW' | 'MODERATE' | 'HIGH' | 'SEVERE'
-    weatherTone: Level
-    loadMw: number
-    loadDelta: number             // %
-  }
-  lastUpdated: string
+    monitored: number;
+    monitoredDelta: number; // %
+    online: number;
+    onlinePct: number; // %
+    outOfService: number;
+    outDelta: number; // %
+    weather: "LOW" | "MODERATE" | "HIGH" | "SEVERE";
+    weatherTone: Level;
+    loadMw: number;
+    loadDelta: number; // %
+  };
+  lastUpdated: string;
 }
 
 const CORRIDORS: Corridor[] = [
   /* ── CRITICAL ── */
   {
-    id: 'toronto-oshawa',
-    name: 'Toronto — Oshawa',
-    short: 'TOR–OSH',
-    from: { name: 'Toronto', coords: [-79.3832, 43.6532] },
-    to:   { name: 'Oshawa',  coords: [-78.8658, 43.8971] },
-    level: 'critical',
+    id: "toronto-oshawa",
+    name: "Toronto — Oshawa",
+    short: "TOR–OSH",
+    from: { name: "Toronto", coords: [-79.3832, 43.6532] },
+    to: { name: "Oshawa", coords: [-78.8658, 43.8971] },
+    level: "critical",
     stressIndex: 92,
     delta: 8,
     trend: [62, 68, 71, 75, 80, 86, 92],
@@ -73,32 +78,47 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 247,
     infraDelta: 23,
     factors: [
-      { label: 'High Demand',          pct: 40, tone: 'critical' },
-      { label: 'Extreme Weather',      pct: 25, tone: 'high' },
-      { label: 'Infrastructure Load',  pct: 20, tone: 'moderate' },
-      { label: 'Maintenance Backlog',  pct: 10, tone: 'low' },
-      { label: 'Other',                pct:  5, tone: 'mute' },
+      { label: "High Demand", pct: 40, tone: "critical" },
+      { label: "Extreme Weather", pct: 25, tone: "high" },
+      { label: "Infrastructure Load", pct: 20, tone: "moderate" },
+      { label: "Maintenance Backlog", pct: 10, tone: "low" },
+      { label: "Other", pct: 5, tone: "mute" },
     ],
     alerts: [
-      { tone: 'critical', title: 'Severe Thunderstorm Watch', subtitle: 'Southwestern Ontario', time: '10:15 AM' },
-      { tone: 'warning',  title: 'High Load Forecast',        subtitle: 'Toronto — Oshawa Corridor', time: '09:45 AM' },
+      {
+        tone: "critical",
+        title: "Severe Thunderstorm Watch",
+        subtitle: "Southwestern Ontario",
+        time: "10:15 AM",
+      },
+      {
+        tone: "warning",
+        title: "High Load Forecast",
+        subtitle: "Toronto — Oshawa Corridor",
+        time: "09:45 AM",
+      },
     ],
     bottom: {
-      monitored: 12_843, monitoredDelta: 1.2,
-      online: 11_256,    onlinePct: 87.6,
-      outOfService: 1_587, outDelta: 12.4,
-      weather: 'HIGH', weatherTone: 'critical',
-      loadMw: 23_450, loadDelta: 6.3,
+      monitored: 12_843,
+      monitoredDelta: 1.2,
+      online: 11_256,
+      onlinePct: 87.6,
+      outOfService: 1_587,
+      outDelta: 12.4,
+      weather: "HIGH",
+      weatherTone: "critical",
+      loadMw: 23_450,
+      loadDelta: 6.3,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:30 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:30 AM EST",
   },
   {
-    id: 'windsor-london',
-    name: 'Windsor — London',
-    short: 'WIN–LON',
-    from: { name: 'Windsor', coords: [-83.0364, 42.3149] },
-    to:   { name: 'London',  coords: [-81.2453, 42.9849] },
-    level: 'critical',
+    id: "windsor-london",
+    name: "Windsor — London",
+    short: "WIN–LON",
+    from: { name: "Windsor", coords: [-83.0364, 42.3149] },
+    to: { name: "London", coords: [-81.2453, 42.9849] },
+    level: "critical",
     stressIndex: 88,
     delta: 6,
     trend: [70, 72, 74, 78, 81, 85, 88],
@@ -109,32 +129,47 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 198,
     infraDelta: 15,
     factors: [
-      { label: 'Industrial Load',      pct: 38, tone: 'critical' },
-      { label: 'High Demand',          pct: 27, tone: 'high' },
-      { label: 'Aging Equipment',      pct: 18, tone: 'moderate' },
-      { label: 'Weather Exposure',     pct: 11, tone: 'low' },
-      { label: 'Other',                pct:  6, tone: 'mute' },
+      { label: "Industrial Load", pct: 38, tone: "critical" },
+      { label: "High Demand", pct: 27, tone: "high" },
+      { label: "Aging Equipment", pct: 18, tone: "moderate" },
+      { label: "Weather Exposure", pct: 11, tone: "low" },
+      { label: "Other", pct: 6, tone: "mute" },
     ],
     alerts: [
-      { tone: 'critical', title: 'Substation Overload Alert', subtitle: 'Tecumseh TS, Windsor',  time: '11:02 AM' },
-      { tone: 'warning',  title: 'Auto-Sector Peak Demand',   subtitle: 'Windsor — London zone', time: '10:18 AM' },
+      {
+        tone: "critical",
+        title: "Substation Overload Alert",
+        subtitle: "Tecumseh TS, Windsor",
+        time: "11:02 AM",
+      },
+      {
+        tone: "warning",
+        title: "Auto-Sector Peak Demand",
+        subtitle: "Windsor — London zone",
+        time: "10:18 AM",
+      },
     ],
     bottom: {
-      monitored: 9_412, monitoredDelta: 0.9,
-      online: 8_290,    onlinePct: 88.1,
-      outOfService: 1_122, outDelta: 9.6,
-      weather: 'MODERATE', weatherTone: 'moderate',
-      loadMw: 18_240, loadDelta: 4.8,
+      monitored: 9_412,
+      monitoredDelta: 0.9,
+      online: 8_290,
+      onlinePct: 88.1,
+      outOfService: 1_122,
+      outDelta: 9.6,
+      weather: "MODERATE",
+      weatherTone: "moderate",
+      loadMw: 18_240,
+      loadDelta: 4.8,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:28 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:28 AM EST",
   },
   {
-    id: 'toronto-hamilton',
-    name: 'Toronto — Hamilton',
-    short: 'TOR–HAM',
-    from: { name: 'Toronto',  coords: [-79.3832, 43.6532] },
-    to:   { name: 'Hamilton', coords: [-79.8711, 43.2557] },
-    level: 'critical',
+    id: "toronto-hamilton",
+    name: "Toronto — Hamilton",
+    short: "TOR–HAM",
+    from: { name: "Toronto", coords: [-79.3832, 43.6532] },
+    to: { name: "Hamilton", coords: [-79.8711, 43.2557] },
+    level: "critical",
     stressIndex: 86,
     delta: 7,
     trend: [60, 65, 70, 74, 79, 83, 86],
@@ -145,32 +180,47 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 213,
     infraDelta: 18,
     factors: [
-      { label: 'Commuter Belt Demand', pct: 36, tone: 'critical' },
-      { label: 'Heat Wave Impact',     pct: 24, tone: 'high' },
-      { label: 'QEW Corridor Load',    pct: 21, tone: 'moderate' },
-      { label: 'Aging Infrastructure', pct: 12, tone: 'low' },
-      { label: 'Other',                pct:  7, tone: 'mute' },
+      { label: "Commuter Belt Demand", pct: 36, tone: "critical" },
+      { label: "Heat Wave Impact", pct: 24, tone: "high" },
+      { label: "QEW Corridor Load", pct: 21, tone: "moderate" },
+      { label: "Aging Infrastructure", pct: 12, tone: "low" },
+      { label: "Other", pct: 7, tone: "mute" },
     ],
     alerts: [
-      { tone: 'critical', title: 'Burlington TS at 94% Capacity', subtitle: 'Burlington Junction', time: '11:18 AM' },
-      { tone: 'warning',  title: 'Cooling Demand Surge',          subtitle: 'GTA West',             time: '10:50 AM' },
+      {
+        tone: "critical",
+        title: "Burlington TS at 94% Capacity",
+        subtitle: "Burlington Junction",
+        time: "11:18 AM",
+      },
+      {
+        tone: "warning",
+        title: "Cooling Demand Surge",
+        subtitle: "GTA West",
+        time: "10:50 AM",
+      },
     ],
     bottom: {
-      monitored: 11_204, monitoredDelta: 1.1,
-      online: 9_820,     onlinePct: 87.7,
-      outOfService: 1_384, outDelta: 11.2,
-      weather: 'HIGH', weatherTone: 'critical',
-      loadMw: 21_180, loadDelta: 5.9,
+      monitored: 11_204,
+      monitoredDelta: 1.1,
+      online: 9_820,
+      onlinePct: 87.7,
+      outOfService: 1_384,
+      outDelta: 11.2,
+      weather: "HIGH",
+      weatherTone: "critical",
+      loadMw: 21_180,
+      loadDelta: 5.9,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:34 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:34 AM EST",
   },
   {
-    id: 'niagara-stcatharines',
-    name: 'Niagara Falls — St. Catharines',
-    short: 'NFL–STC',
-    from: { name: 'Niagara Falls',  coords: [-79.0747, 43.0962] },
-    to:   { name: 'St. Catharines', coords: [-79.2469, 43.1594] },
-    level: 'critical',
+    id: "niagara-stcatharines",
+    name: "Niagara Falls — St. Catharines",
+    short: "NFL–STC",
+    from: { name: "Niagara Falls", coords: [-79.0747, 43.0962] },
+    to: { name: "St. Catharines", coords: [-79.2469, 43.1594] },
+    level: "critical",
     stressIndex: 84,
     delta: 5,
     trend: [68, 70, 73, 76, 79, 82, 84],
@@ -181,34 +231,49 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 168,
     infraDelta: 11,
     factors: [
-      { label: 'Generation Output Peak', pct: 34, tone: 'critical' },
-      { label: 'Cross-Border Export',    pct: 26, tone: 'high' },
-      { label: 'Tourism Demand',         pct: 19, tone: 'moderate' },
-      { label: 'Aging Transmission',     pct: 14, tone: 'low' },
-      { label: 'Other',                  pct:  7, tone: 'mute' },
+      { label: "Generation Output Peak", pct: 34, tone: "critical" },
+      { label: "Cross-Border Export", pct: 26, tone: "high" },
+      { label: "Tourism Demand", pct: 19, tone: "moderate" },
+      { label: "Aging Transmission", pct: 14, tone: "low" },
+      { label: "Other", pct: 7, tone: "mute" },
     ],
     alerts: [
-      { tone: 'critical', title: 'Sir Adam Beck Output 99%', subtitle: 'Niagara Generation Complex', time: '11:35 AM' },
-      { tone: 'warning',  title: 'Export Tieline Saturation',subtitle: 'NY-Ontario Interconnect',    time: '10:22 AM' },
+      {
+        tone: "critical",
+        title: "Sir Adam Beck Output 99%",
+        subtitle: "Niagara Generation Complex",
+        time: "11:35 AM",
+      },
+      {
+        tone: "warning",
+        title: "Export Tieline Saturation",
+        subtitle: "NY-Ontario Interconnect",
+        time: "10:22 AM",
+      },
     ],
     bottom: {
-      monitored: 7_890, monitoredDelta: 0.8,
-      online: 7_040,    onlinePct: 89.2,
-      outOfService: 850, outDelta: 7.4,
-      weather: 'MODERATE', weatherTone: 'high',
-      loadMw: 16_720, loadDelta: 4.2,
+      monitored: 7_890,
+      monitoredDelta: 0.8,
+      online: 7_040,
+      onlinePct: 89.2,
+      outOfService: 850,
+      outDelta: 7.4,
+      weather: "MODERATE",
+      weatherTone: "high",
+      loadMw: 16_720,
+      loadDelta: 4.2,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:33 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:33 AM EST",
   },
 
   /* ── HIGH ── */
   {
-    id: 'ottawa-kingston',
-    name: 'Ottawa — Kingston',
-    short: 'OTT–KGN',
-    from: { name: 'Ottawa',   coords: [-75.6972, 45.4215] },
-    to:   { name: 'Kingston', coords: [-76.4860, 44.2312] },
-    level: 'high',
+    id: "ottawa-kingston",
+    name: "Ottawa — Kingston",
+    short: "OTT–KGN",
+    from: { name: "Ottawa", coords: [-75.6972, 45.4215] },
+    to: { name: "Kingston", coords: [-76.486, 44.2312] },
+    level: "high",
     stressIndex: 71,
     delta: 3,
     trend: [60, 63, 65, 67, 69, 70, 71],
@@ -219,32 +284,47 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 134,
     infraDelta: 8,
     factors: [
-      { label: 'Government Sector Demand', pct: 32, tone: 'high' },
-      { label: 'Seasonal Heating Load',    pct: 26, tone: 'moderate' },
-      { label: 'Transmission Congestion',  pct: 21, tone: 'moderate' },
-      { label: 'Maintenance Backlog',      pct: 14, tone: 'low' },
-      { label: 'Other',                    pct:  7, tone: 'mute' },
+      { label: "Government Sector Demand", pct: 32, tone: "high" },
+      { label: "Seasonal Heating Load", pct: 26, tone: "moderate" },
+      { label: "Transmission Congestion", pct: 21, tone: "moderate" },
+      { label: "Maintenance Backlog", pct: 14, tone: "low" },
+      { label: "Other", pct: 7, tone: "mute" },
     ],
     alerts: [
-      { tone: 'warning',  title: 'Capacity Threshold Reached', subtitle: 'Kingston East TS', time: '09:55 AM' },
-      { tone: 'warning',  title: 'Wind Advisory',              subtitle: 'Eastern Ontario',  time: '09:20 AM' },
+      {
+        tone: "warning",
+        title: "Capacity Threshold Reached",
+        subtitle: "Kingston East TS",
+        time: "09:55 AM",
+      },
+      {
+        tone: "warning",
+        title: "Wind Advisory",
+        subtitle: "Eastern Ontario",
+        time: "09:20 AM",
+      },
     ],
     bottom: {
-      monitored: 6_840, monitoredDelta: 0.4,
-      online: 6_310,    onlinePct: 92.3,
-      outOfService: 530, outDelta: 3.1,
-      weather: 'MODERATE', weatherTone: 'moderate',
-      loadMw: 11_870, loadDelta: 2.7,
+      monitored: 6_840,
+      monitoredDelta: 0.4,
+      online: 6_310,
+      onlinePct: 92.3,
+      outOfService: 530,
+      outDelta: 3.1,
+      weather: "MODERATE",
+      weatherTone: "moderate",
+      loadMw: 11_870,
+      loadDelta: 2.7,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:31 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:31 AM EST",
   },
   {
-    id: 'sudbury-northbay',
-    name: 'Sudbury — North Bay',
-    short: 'SUD–NBY',
-    from: { name: 'Sudbury',    coords: [-80.9930, 46.4917] },
-    to:   { name: 'North Bay',  coords: [-79.4608, 46.3091] },
-    level: 'high',
+    id: "sudbury-northbay",
+    name: "Sudbury — North Bay",
+    short: "SUD–NBY",
+    from: { name: "Sudbury", coords: [-80.993, 46.4917] },
+    to: { name: "North Bay", coords: [-79.4608, 46.3091] },
+    level: "high",
     stressIndex: 68,
     delta: 4,
     trend: [55, 58, 60, 62, 64, 66, 68],
@@ -255,32 +335,47 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 112,
     infraDelta: 9,
     factors: [
-      { label: 'Aging Equipment',        pct: 34, tone: 'high' },
-      { label: 'Mining Sector Load',     pct: 24, tone: 'moderate' },
-      { label: 'Extreme Cold Reserve',   pct: 19, tone: 'moderate' },
-      { label: 'Remote Access Backlog',  pct: 16, tone: 'low' },
-      { label: 'Other',                  pct:  7, tone: 'mute' },
+      { label: "Aging Equipment", pct: 34, tone: "high" },
+      { label: "Mining Sector Load", pct: 24, tone: "moderate" },
+      { label: "Extreme Cold Reserve", pct: 19, tone: "moderate" },
+      { label: "Remote Access Backlog", pct: 16, tone: "low" },
+      { label: "Other", pct: 7, tone: "mute" },
     ],
     alerts: [
-      { tone: 'warning',  title: 'Feeder Maintenance Overdue', subtitle: 'Hwy 17 Corridor',   time: '08:40 AM' },
-      { tone: 'warning',  title: 'Industrial Spike Detected',  subtitle: 'Sudbury Basin',     time: '08:05 AM' },
+      {
+        tone: "warning",
+        title: "Feeder Maintenance Overdue",
+        subtitle: "Hwy 17 Corridor",
+        time: "08:40 AM",
+      },
+      {
+        tone: "warning",
+        title: "Industrial Spike Detected",
+        subtitle: "Sudbury Basin",
+        time: "08:05 AM",
+      },
     ],
     bottom: {
-      monitored: 4_920, monitoredDelta: 0.3,
-      online: 4_530,    onlinePct: 92.1,
-      outOfService: 390, outDelta: 4.4,
-      weather: 'LOW', weatherTone: 'low',
-      loadMw: 7_640, loadDelta: 1.9,
+      monitored: 4_920,
+      monitoredDelta: 0.3,
+      online: 4_530,
+      onlinePct: 92.1,
+      outOfService: 390,
+      outDelta: 4.4,
+      weather: "LOW",
+      weatherTone: "low",
+      loadMw: 7_640,
+      loadDelta: 1.9,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:29 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:29 AM EST",
   },
   {
-    id: 'kitchener-toronto',
-    name: 'Kitchener — Toronto',
-    short: 'KIT–TOR',
-    from: { name: 'Kitchener', coords: [-80.4920, 43.4516] },
-    to:   { name: 'Toronto',   coords: [-79.3832, 43.6532] },
-    level: 'high',
+    id: "kitchener-toronto",
+    name: "Kitchener — Toronto",
+    short: "KIT–TOR",
+    from: { name: "Kitchener", coords: [-80.492, 43.4516] },
+    to: { name: "Toronto", coords: [-79.3832, 43.6532] },
+    level: "high",
     stressIndex: 74,
     delta: 4,
     trend: [60, 63, 66, 68, 71, 72, 74],
@@ -291,32 +386,47 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 156,
     infraDelta: 12,
     factors: [
-      { label: 'Tech Corridor Demand', pct: 35, tone: 'high' },
-      { label: '401 Commuter Belt',    pct: 23, tone: 'moderate' },
-      { label: 'Data Center Load',     pct: 20, tone: 'moderate' },
-      { label: 'Substation Wear',      pct: 14, tone: 'low' },
-      { label: 'Other',                pct:  8, tone: 'mute' },
+      { label: "Tech Corridor Demand", pct: 35, tone: "high" },
+      { label: "401 Commuter Belt", pct: 23, tone: "moderate" },
+      { label: "Data Center Load", pct: 20, tone: "moderate" },
+      { label: "Substation Wear", pct: 14, tone: "low" },
+      { label: "Other", pct: 8, tone: "mute" },
     ],
     alerts: [
-      { tone: 'warning',  title: 'Detweiler TS Loading 88%',  subtitle: 'Kitchener',         time: '10:42 AM' },
-      { tone: 'warning',  title: 'Data Centre Load Forecast', subtitle: 'Cambridge Cluster', time: '09:58 AM' },
+      {
+        tone: "warning",
+        title: "Detweiler TS Loading 88%",
+        subtitle: "Kitchener",
+        time: "10:42 AM",
+      },
+      {
+        tone: "warning",
+        title: "Data Centre Load Forecast",
+        subtitle: "Cambridge Cluster",
+        time: "09:58 AM",
+      },
     ],
     bottom: {
-      monitored: 8_310, monitoredDelta: 0.7,
-      online: 7_510,    onlinePct: 90.4,
-      outOfService: 800, outDelta: 5.2,
-      weather: 'MODERATE', weatherTone: 'moderate',
-      loadMw: 14_320, loadDelta: 3.6,
+      monitored: 8_310,
+      monitoredDelta: 0.7,
+      online: 7_510,
+      onlinePct: 90.4,
+      outOfService: 800,
+      outDelta: 5.2,
+      weather: "MODERATE",
+      weatherTone: "moderate",
+      loadMw: 14_320,
+      loadDelta: 3.6,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:36 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:36 AM EST",
   },
   {
-    id: 'windsor-sarnia',
-    name: 'Windsor — Sarnia',
-    short: 'WIN–SAR',
-    from: { name: 'Windsor', coords: [-83.0364, 42.3149] },
-    to:   { name: 'Sarnia',  coords: [-82.4066, 42.9994] },
-    level: 'high',
+    id: "windsor-sarnia",
+    name: "Windsor — Sarnia",
+    short: "WIN–SAR",
+    from: { name: "Windsor", coords: [-83.0364, 42.3149] },
+    to: { name: "Sarnia", coords: [-82.4066, 42.9994] },
+    level: "high",
     stressIndex: 69,
     delta: 3,
     trend: [58, 60, 63, 65, 67, 68, 69],
@@ -327,32 +437,47 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 142,
     infraDelta: 10,
     factors: [
-      { label: 'Petrochemical Load',  pct: 38, tone: 'high' },
-      { label: 'Cross-Border Trade',  pct: 22, tone: 'moderate' },
-      { label: 'Refinery Cooling',    pct: 18, tone: 'moderate' },
-      { label: 'Aging Tielines',      pct: 14, tone: 'low' },
-      { label: 'Other',               pct:  8, tone: 'mute' },
+      { label: "Petrochemical Load", pct: 38, tone: "high" },
+      { label: "Cross-Border Trade", pct: 22, tone: "moderate" },
+      { label: "Refinery Cooling", pct: 18, tone: "moderate" },
+      { label: "Aging Tielines", pct: 14, tone: "low" },
+      { label: "Other", pct: 8, tone: "mute" },
     ],
     alerts: [
-      { tone: 'warning', title: 'Lambton TS Alarm Latched', subtitle: 'Sarnia Industrial Park', time: '10:08 AM' },
-      { tone: 'warning', title: 'Cooling Tower Anomaly',     subtitle: 'Refinery Row',          time: '09:14 AM' },
+      {
+        tone: "warning",
+        title: "Lambton TS Alarm Latched",
+        subtitle: "Sarnia Industrial Park",
+        time: "10:08 AM",
+      },
+      {
+        tone: "warning",
+        title: "Cooling Tower Anomaly",
+        subtitle: "Refinery Row",
+        time: "09:14 AM",
+      },
     ],
     bottom: {
-      monitored: 6_120, monitoredDelta: 0.5,
-      online: 5_540,    onlinePct: 90.5,
-      outOfService: 580, outDelta: 4.0,
-      weather: 'MODERATE', weatherTone: 'moderate',
-      loadMw: 12_840, loadDelta: 3.1,
+      monitored: 6_120,
+      monitoredDelta: 0.5,
+      online: 5_540,
+      onlinePct: 90.5,
+      outOfService: 580,
+      outDelta: 4.0,
+      weather: "MODERATE",
+      weatherTone: "moderate",
+      loadMw: 12_840,
+      loadDelta: 3.1,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:30 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:30 AM EST",
   },
   {
-    id: 'toronto-niagara',
-    name: 'Toronto — Niagara Falls',
-    short: 'TOR–NFL',
-    from: { name: 'Toronto',       coords: [-79.3832, 43.6532] },
-    to:   { name: 'Niagara Falls', coords: [-79.0747, 43.0962] },
-    level: 'high',
+    id: "toronto-niagara",
+    name: "Toronto — Niagara Falls",
+    short: "TOR–NFL",
+    from: { name: "Toronto", coords: [-79.3832, 43.6532] },
+    to: { name: "Niagara Falls", coords: [-79.0747, 43.0962] },
+    level: "high",
     stressIndex: 72,
     delta: 4,
     trend: [58, 61, 64, 66, 69, 71, 72],
@@ -363,32 +488,47 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 174,
     infraDelta: 13,
     factors: [
-      { label: 'Generation Transfer', pct: 36, tone: 'high' },
-      { label: 'Lake-effect Storms',  pct: 22, tone: 'moderate' },
-      { label: 'Tourism Peak',        pct: 18, tone: 'moderate' },
-      { label: 'Hammertown Splice',   pct: 16, tone: 'low' },
-      { label: 'Other',               pct:  8, tone: 'mute' },
+      { label: "Generation Transfer", pct: 36, tone: "high" },
+      { label: "Lake-effect Storms", pct: 22, tone: "moderate" },
+      { label: "Tourism Peak", pct: 18, tone: "moderate" },
+      { label: "Hammertown Splice", pct: 16, tone: "low" },
+      { label: "Other", pct: 8, tone: "mute" },
     ],
     alerts: [
-      { tone: 'warning', title: 'Hannon TS Reactive Power Low', subtitle: 'Hannon, Hamilton', time: '10:25 AM' },
-      { tone: 'warning', title: 'Tieline Phase Imbalance',       subtitle: 'Beck — Middleport', time: '09:48 AM' },
+      {
+        tone: "warning",
+        title: "Hannon TS Reactive Power Low",
+        subtitle: "Hannon, Hamilton",
+        time: "10:25 AM",
+      },
+      {
+        tone: "warning",
+        title: "Tieline Phase Imbalance",
+        subtitle: "Beck — Middleport",
+        time: "09:48 AM",
+      },
     ],
     bottom: {
-      monitored: 9_140, monitoredDelta: 0.8,
-      online: 8_280,    onlinePct: 90.6,
-      outOfService: 860, outDelta: 5.6,
-      weather: 'MODERATE', weatherTone: 'moderate',
-      loadMw: 15_240, loadDelta: 3.8,
+      monitored: 9_140,
+      monitoredDelta: 0.8,
+      online: 8_280,
+      onlinePct: 90.6,
+      outOfService: 860,
+      outDelta: 5.6,
+      weather: "MODERATE",
+      weatherTone: "moderate",
+      loadMw: 15_240,
+      loadDelta: 3.8,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:35 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:35 AM EST",
   },
   {
-    id: 'barrie-toronto',
-    name: 'Barrie — Toronto',
-    short: 'BAR–TOR',
-    from: { name: 'Barrie',  coords: [-79.6903, 44.3894] },
-    to:   { name: 'Toronto', coords: [-79.3832, 43.6532] },
-    level: 'high',
+    id: "barrie-toronto",
+    name: "Barrie — Toronto",
+    short: "BAR–TOR",
+    from: { name: "Barrie", coords: [-79.6903, 44.3894] },
+    to: { name: "Toronto", coords: [-79.3832, 43.6532] },
+    level: "high",
     stressIndex: 66,
     delta: 3,
     trend: [54, 57, 59, 61, 63, 65, 66],
@@ -399,34 +539,101 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 138,
     infraDelta: 9,
     factors: [
-      { label: 'Cottage-Country Surge', pct: 31, tone: 'high' },
-      { label: 'Hwy 400 Commute',       pct: 25, tone: 'moderate' },
-      { label: 'Summer A/C Load',       pct: 20, tone: 'moderate' },
-      { label: 'Right-of-Way Trees',    pct: 16, tone: 'low' },
-      { label: 'Other',                 pct:  8, tone: 'mute' },
+      { label: "Cottage-Country Surge", pct: 31, tone: "high" },
+      { label: "Hwy 400 Commute", pct: 25, tone: "moderate" },
+      { label: "Summer A/C Load", pct: 20, tone: "moderate" },
+      { label: "Right-of-Way Trees", pct: 16, tone: "low" },
+      { label: "Other", pct: 8, tone: "mute" },
     ],
     alerts: [
-      { tone: 'warning', title: 'Vegetation Encroachment',   subtitle: 'Holland Marsh Section',    time: '08:55 AM' },
-      { tone: 'warning', title: 'Essa TS Load Climb',         subtitle: 'Innisfil — Barrie',       time: '07:42 AM' },
+      {
+        tone: "warning",
+        title: "Vegetation Encroachment",
+        subtitle: "Holland Marsh Section",
+        time: "08:55 AM",
+      },
+      {
+        tone: "warning",
+        title: "Essa TS Load Climb",
+        subtitle: "Innisfil — Barrie",
+        time: "07:42 AM",
+      },
     ],
     bottom: {
-      monitored: 7_240, monitoredDelta: 0.6,
-      online: 6_610,    onlinePct: 91.3,
-      outOfService: 630, outDelta: 4.2,
-      weather: 'MODERATE', weatherTone: 'moderate',
-      loadMw: 11_310, loadDelta: 2.9,
+      monitored: 7_240,
+      monitoredDelta: 0.6,
+      online: 6_610,
+      onlinePct: 91.3,
+      outOfService: 630,
+      outDelta: 4.2,
+      weather: "MODERATE",
+      weatherTone: "moderate",
+      loadMw: 11_310,
+      loadDelta: 2.9,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:31 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:31 AM EST",
+  },
+
+  {
+    id: "brampton-toronto",
+    name: "Brampton — Toronto",
+    short: "BRA–TOR",
+    from: { name: "Brampton", coords: [-79.7624, 43.7315] },
+    to: { name: "Toronto", coords: [-79.3832, 43.6532] },
+    level: "critical",
+    stressIndex: 89,
+    delta: 9,
+    trend: [58, 65, 70, 76, 81, 85, 89],
+    customers: 142_380,
+    customersDelta: 18_640,
+    outageRisk: 34,
+    outageRiskDelta: 6,
+    infraAtRisk: 261,
+    infraDelta: 28,
+    factors: [
+      { label: "EV Charging Surge", pct: 38, tone: "critical" },
+      { label: "Suburban Demand Growth", pct: 27, tone: "high" },
+      { label: "Feeder Capacity Limit", pct: 19, tone: "moderate" },
+      { label: "Aging Substations", pct: 10, tone: "low" },
+      { label: "Other", pct: 6, tone: "mute" },
+    ],
+    alerts: [
+      {
+        tone: "critical",
+        title: "Alectra Feeder BRA-07 at 96%",
+        subtitle: "Brampton North Zone",
+        time: "10:42 AM",
+      },
+      {
+        tone: "warning",
+        title: "EV Overnight Load Spike",
+        subtitle: "Brampton — Etobicoke",
+        time: "09:55 AM",
+      },
+    ],
+    bottom: {
+      monitored: 13_920,
+      monitoredDelta: 2.1,
+      online: 12_180,
+      onlinePct: 87.5,
+      outOfService: 1_740,
+      outDelta: 14.2,
+      weather: "HIGH",
+      weatherTone: "critical",
+      loadMw: 24_810,
+      loadDelta: 7.4,
+    },
+    lastUpdated: "Jul 9, 2025  ·  10:42 AM EST",
   },
 
   /* ── MODERATE ── */
   {
-    id: 'hamilton-stcatharines',
-    name: 'Hamilton — St. Catharines',
-    short: 'HAM–STC',
-    from: { name: 'Hamilton',       coords: [-79.8711, 43.2557] },
-    to:   { name: 'St. Catharines', coords: [-79.2469, 43.1594] },
-    level: 'moderate',
+    id: "hamilton-stcatharines",
+    name: "Hamilton — St. Catharines",
+    short: "HAM–STC",
+    from: { name: "Hamilton", coords: [-79.8711, 43.2557] },
+    to: { name: "St. Catharines", coords: [-79.2469, 43.1594] },
+    level: "moderate",
     stressIndex: 54,
     delta: 2,
     trend: [48, 49, 51, 52, 53, 54, 54],
@@ -437,32 +644,47 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 87,
     infraDelta: 4,
     factors: [
-      { label: 'Industrial Steel Load', pct: 30, tone: 'moderate' },
-      { label: 'Tourism Demand Spike',  pct: 24, tone: 'moderate' },
-      { label: 'Substation Loading',    pct: 22, tone: 'low' },
-      { label: 'Weather Exposure',      pct: 16, tone: 'low' },
-      { label: 'Other',                 pct:  8, tone: 'mute' },
+      { label: "Industrial Steel Load", pct: 30, tone: "moderate" },
+      { label: "Tourism Demand Spike", pct: 24, tone: "moderate" },
+      { label: "Substation Loading", pct: 22, tone: "low" },
+      { label: "Weather Exposure", pct: 16, tone: "low" },
+      { label: "Other", pct: 8, tone: "mute" },
     ],
     alerts: [
-      { tone: 'warning',  title: 'Voltage Sag Recorded',     subtitle: 'St. Catharines DS',   time: '07:48 AM' },
-      { tone: 'warning',  title: 'Festival Load Forecast',   subtitle: 'Hamilton Downtown',   time: '07:12 AM' },
+      {
+        tone: "warning",
+        title: "Voltage Sag Recorded",
+        subtitle: "St. Catharines DS",
+        time: "07:48 AM",
+      },
+      {
+        tone: "warning",
+        title: "Festival Load Forecast",
+        subtitle: "Hamilton Downtown",
+        time: "07:12 AM",
+      },
     ],
     bottom: {
-      monitored: 5_320, monitoredDelta: 0.2,
-      online: 5_080,    onlinePct: 95.5,
-      outOfService: 240, outDelta: 1.6,
-      weather: 'LOW', weatherTone: 'low',
-      loadMw: 9_180, loadDelta: 1.3,
+      monitored: 5_320,
+      monitoredDelta: 0.2,
+      online: 5_080,
+      onlinePct: 95.5,
+      outOfService: 240,
+      outDelta: 1.6,
+      weather: "LOW",
+      weatherTone: "low",
+      loadMw: 9_180,
+      loadDelta: 1.3,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:32 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:32 AM EST",
   },
   {
-    id: 'london-kitchener',
-    name: 'London — Kitchener',
-    short: 'LON–KIT',
-    from: { name: 'London',    coords: [-81.2453, 42.9849] },
-    to:   { name: 'Kitchener', coords: [-80.4920, 43.4516] },
-    level: 'moderate',
+    id: "london-kitchener",
+    name: "London — Kitchener",
+    short: "LON–KIT",
+    from: { name: "London", coords: [-81.2453, 42.9849] },
+    to: { name: "Kitchener", coords: [-80.492, 43.4516] },
+    level: "moderate",
     stressIndex: 58,
     delta: 2,
     trend: [50, 52, 53, 55, 56, 57, 58],
@@ -473,32 +695,47 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 96,
     infraDelta: 5,
     factors: [
-      { label: '401 Logistics Demand', pct: 28, tone: 'moderate' },
-      { label: 'University Term Load', pct: 23, tone: 'moderate' },
-      { label: 'Light Industrial',     pct: 21, tone: 'low' },
-      { label: 'Agriculture Cooling',  pct: 18, tone: 'low' },
-      { label: 'Other',                pct: 10, tone: 'mute' },
+      { label: "401 Logistics Demand", pct: 28, tone: "moderate" },
+      { label: "University Term Load", pct: 23, tone: "moderate" },
+      { label: "Light Industrial", pct: 21, tone: "low" },
+      { label: "Agriculture Cooling", pct: 18, tone: "low" },
+      { label: "Other", pct: 10, tone: "mute" },
     ],
     alerts: [
-      { tone: 'warning', title: 'Wonderland TS Brief Trip', subtitle: 'London North', time: '08:18 AM' },
-      { tone: 'warning', title: 'Animal Contact Outage',     subtitle: 'Woodstock Spur', time: '07:02 AM' },
+      {
+        tone: "warning",
+        title: "Wonderland TS Brief Trip",
+        subtitle: "London North",
+        time: "08:18 AM",
+      },
+      {
+        tone: "warning",
+        title: "Animal Contact Outage",
+        subtitle: "Woodstock Spur",
+        time: "07:02 AM",
+      },
     ],
     bottom: {
-      monitored: 5_840, monitoredDelta: 0.3,
-      online: 5_530,    onlinePct: 94.7,
-      outOfService: 310, outDelta: 2.1,
-      weather: 'LOW', weatherTone: 'low',
-      loadMw: 10_120, loadDelta: 1.8,
+      monitored: 5_840,
+      monitoredDelta: 0.3,
+      online: 5_530,
+      onlinePct: 94.7,
+      outOfService: 310,
+      outDelta: 2.1,
+      weather: "LOW",
+      weatherTone: "low",
+      loadMw: 10_120,
+      loadDelta: 1.8,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:33 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:33 AM EST",
   },
   {
-    id: 'peterborough-oshawa',
-    name: 'Peterborough — Oshawa',
-    short: 'PTB–OSH',
-    from: { name: 'Peterborough', coords: [-78.3232, 44.3091] },
-    to:   { name: 'Oshawa',       coords: [-78.8658, 43.8971] },
-    level: 'moderate',
+    id: "peterborough-oshawa",
+    name: "Peterborough — Oshawa",
+    short: "PTB–OSH",
+    from: { name: "Peterborough", coords: [-78.3232, 44.3091] },
+    to: { name: "Oshawa", coords: [-78.8658, 43.8971] },
+    level: "moderate",
     stressIndex: 52,
     delta: 2,
     trend: [44, 46, 48, 49, 50, 51, 52],
@@ -509,32 +746,47 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 78,
     infraDelta: 3,
     factors: [
-      { label: 'Lakeside Cottage Load', pct: 30, tone: 'moderate' },
-      { label: 'Substation Age',        pct: 24, tone: 'moderate' },
-      { label: 'Storm Exposure',        pct: 20, tone: 'low' },
-      { label: 'Light Manufacturing',   pct: 16, tone: 'low' },
-      { label: 'Other',                 pct: 10, tone: 'mute' },
+      { label: "Lakeside Cottage Load", pct: 30, tone: "moderate" },
+      { label: "Substation Age", pct: 24, tone: "moderate" },
+      { label: "Storm Exposure", pct: 20, tone: "low" },
+      { label: "Light Manufacturing", pct: 16, tone: "low" },
+      { label: "Other", pct: 10, tone: "mute" },
     ],
     alerts: [
-      { tone: 'warning', title: 'Cavan Monaghan Feeder Trip', subtitle: 'Rural Loop',         time: '06:35 AM' },
-      { tone: 'warning', title: 'Lightning Activity',          subtitle: 'Kawartha Lakes',    time: '05:50 AM' },
+      {
+        tone: "warning",
+        title: "Cavan Monaghan Feeder Trip",
+        subtitle: "Rural Loop",
+        time: "06:35 AM",
+      },
+      {
+        tone: "warning",
+        title: "Lightning Activity",
+        subtitle: "Kawartha Lakes",
+        time: "05:50 AM",
+      },
     ],
     bottom: {
-      monitored: 4_120, monitoredDelta: 0.2,
-      online: 3_920,    onlinePct: 95.1,
-      outOfService: 200, outDelta: 1.3,
-      weather: 'LOW', weatherTone: 'low',
-      loadMw: 6_890, loadDelta: 1.0,
+      monitored: 4_120,
+      monitoredDelta: 0.2,
+      online: 3_920,
+      onlinePct: 95.1,
+      outOfService: 200,
+      outDelta: 1.3,
+      weather: "LOW",
+      weatherTone: "low",
+      loadMw: 6_890,
+      loadDelta: 1.0,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:34 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:34 AM EST",
   },
   {
-    id: 'kingston-belleville',
-    name: 'Kingston — Belleville',
-    short: 'KGN–BEL',
-    from: { name: 'Kingston',   coords: [-76.4860, 44.2312] },
-    to:   { name: 'Belleville', coords: [-77.3833, 44.1628] },
-    level: 'moderate',
+    id: "kingston-belleville",
+    name: "Kingston — Belleville",
+    short: "KGN–BEL",
+    from: { name: "Kingston", coords: [-76.486, 44.2312] },
+    to: { name: "Belleville", coords: [-77.3833, 44.1628] },
+    level: "moderate",
     stressIndex: 49,
     delta: 1,
     trend: [44, 45, 46, 47, 48, 48, 49],
@@ -545,34 +797,49 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 71,
     infraDelta: 2,
     factors: [
-      { label: 'Hwy 401 Traffic Load', pct: 28, tone: 'moderate' },
-      { label: 'Agricultural Pumping', pct: 22, tone: 'low' },
-      { label: 'Substation Wear',      pct: 21, tone: 'low' },
-      { label: 'Tourism Demand',       pct: 18, tone: 'low' },
-      { label: 'Other',                pct: 11, tone: 'mute' },
+      { label: "Hwy 401 Traffic Load", pct: 28, tone: "moderate" },
+      { label: "Agricultural Pumping", pct: 22, tone: "low" },
+      { label: "Substation Wear", pct: 21, tone: "low" },
+      { label: "Tourism Demand", pct: 18, tone: "low" },
+      { label: "Other", pct: 11, tone: "mute" },
     ],
     alerts: [
-      { tone: 'warning', title: 'Napanee Spur Voltage Dip',   subtitle: 'Napanee Substation', time: '06:18 AM' },
-      { tone: 'warning', title: 'Feeder Inspection Due',       subtitle: 'Quinte West',        time: '05:30 AM' },
+      {
+        tone: "warning",
+        title: "Napanee Spur Voltage Dip",
+        subtitle: "Napanee Substation",
+        time: "06:18 AM",
+      },
+      {
+        tone: "warning",
+        title: "Feeder Inspection Due",
+        subtitle: "Quinte West",
+        time: "05:30 AM",
+      },
     ],
     bottom: {
-      monitored: 3_640, monitoredDelta: 0.2,
-      online: 3_490,    onlinePct: 95.9,
-      outOfService: 150, outDelta: 0.8,
-      weather: 'LOW', weatherTone: 'low',
-      loadMw: 5_910, loadDelta: 0.7,
+      monitored: 3_640,
+      monitoredDelta: 0.2,
+      online: 3_490,
+      onlinePct: 95.9,
+      outOfService: 150,
+      outDelta: 0.8,
+      weather: "LOW",
+      weatherTone: "low",
+      loadMw: 5_910,
+      loadDelta: 0.7,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:33 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:33 AM EST",
   },
 
   /* ── LOW ── */
   {
-    id: 'thunderbay-sault',
-    name: 'Thunder Bay — Sault Ste. Marie',
-    short: 'TBY–SSM',
-    from: { name: 'Thunder Bay',      coords: [-89.2477, 48.3809] },
-    to:   { name: 'Sault Ste. Marie', coords: [-84.3461, 46.4978] },
-    level: 'low',
+    id: "thunderbay-sault",
+    name: "Thunder Bay — Sault Ste. Marie",
+    short: "TBY–SSM",
+    from: { name: "Thunder Bay", coords: [-89.2477, 48.3809] },
+    to: { name: "Sault Ste. Marie", coords: [-84.3461, 46.4978] },
+    level: "low",
     stressIndex: 22,
     delta: 1,
     trend: [18, 19, 20, 20, 21, 21, 22],
@@ -583,188 +850,481 @@ const CORRIDORS: Corridor[] = [
     infraAtRisk: 38,
     infraDelta: 1,
     factors: [
-      { label: 'Light Residential',    pct: 32, tone: 'low' },
-      { label: 'Mining Standby',       pct: 24, tone: 'low' },
-      { label: 'Seasonal Lodging',     pct: 18, tone: 'low' },
-      { label: 'Right-of-Way',         pct: 14, tone: 'mute' },
-      { label: 'Other',                pct: 12, tone: 'mute' },
+      { label: "Light Residential", pct: 32, tone: "low" },
+      { label: "Mining Standby", pct: 24, tone: "low" },
+      { label: "Seasonal Lodging", pct: 18, tone: "low" },
+      { label: "Right-of-Way", pct: 14, tone: "mute" },
+      { label: "Other", pct: 12, tone: "mute" },
     ],
     alerts: [
-      { tone: 'warning', title: 'Routine Patrol Scheduled', subtitle: 'Wawa to Sault corridor', time: '04:50 AM' },
+      {
+        tone: "warning",
+        title: "Routine Patrol Scheduled",
+        subtitle: "Wawa to Sault corridor",
+        time: "04:50 AM",
+      },
     ],
     bottom: {
-      monitored: 2_180, monitoredDelta: 0.1,
-      online: 2_130,    onlinePct: 97.7,
-      outOfService: 50,  outDelta: 0.3,
-      weather: 'LOW', weatherTone: 'low',
-      loadMw: 2_980, loadDelta: 0.4,
+      monitored: 2_180,
+      monitoredDelta: 0.1,
+      online: 2_130,
+      onlinePct: 97.7,
+      outOfService: 50,
+      outDelta: 0.3,
+      weather: "LOW",
+      weatherTone: "low",
+      loadMw: 2_980,
+      loadDelta: 0.4,
     },
-    lastUpdated: 'Jul 9, 2025  ·  10:30 AM EST',
+    lastUpdated: "Jul 9, 2025  ·  10:30 AM EST",
   },
-]
+];
 
 /* ─────────────────────────────────────────────
    SUBSTATIONS  (additional clickable nodes)
    ───────────────────────────────────────────── */
 
-type SubStatus = 'online' | 'caution' | 'offline'
+type SubStatus = "online" | "caution" | "offline";
 
 interface Substation {
-  id: string
-  name: string
-  code: string
+  id: string;
+  name: string;
+  code: string;
   /** [lng, lat] */
-  coords: [number, number]
+  coords: [number, number];
   /** Which corridor this substation primarily serves */
-  corridorId: string
-  type: 'Transmission' | 'Distribution' | 'Generation'
-  capacityMva: number
-  loadPct: number
-  status: SubStatus
+  corridorId: string;
+  type: "Transmission" | "Distribution" | "Generation";
+  capacityMva: number;
+  loadPct: number;
+  status: SubStatus;
 }
 
 const SUBSTATIONS: Substation[] = [
   // Toronto–Oshawa corridor
-  { id: 'sub-manby',       name: 'Manby TS',       code: 'MBY',  coords: [-79.5189, 43.6492], corridorId: 'toronto-oshawa',         type: 'Transmission', capacityMva: 1_500, loadPct: 89, status: 'caution' },
-  { id: 'sub-cherrywood',  name: 'Cherrywood TS',  code: 'CHR',  coords: [-79.0892, 43.8420], corridorId: 'toronto-oshawa',         type: 'Transmission', capacityMva: 1_280, loadPct: 92, status: 'caution' },
-  { id: 'sub-leaside',     name: 'Leaside TS',     code: 'LSD',  coords: [-79.3580, 43.7065], corridorId: 'toronto-oshawa',         type: 'Transmission', capacityMva: 960,   loadPct: 84, status: 'online' },
+  {
+    id: "sub-manby",
+    name: "Manby TS",
+    code: "MBY",
+    coords: [-79.5189, 43.6492],
+    corridorId: "toronto-oshawa",
+    type: "Transmission",
+    capacityMva: 1_500,
+    loadPct: 89,
+    status: "caution",
+  },
+  {
+    id: "sub-cherrywood",
+    name: "Cherrywood TS",
+    code: "CHR",
+    coords: [-79.0892, 43.842],
+    corridorId: "toronto-oshawa",
+    type: "Transmission",
+    capacityMva: 1_280,
+    loadPct: 92,
+    status: "caution",
+  },
+  {
+    id: "sub-leaside",
+    name: "Leaside TS",
+    code: "LSD",
+    coords: [-79.358, 43.7065],
+    corridorId: "toronto-oshawa",
+    type: "Transmission",
+    capacityMva: 960,
+    loadPct: 84,
+    status: "online",
+  },
 
   // Windsor–London corridor
-  { id: 'sub-tecumseh',    name: 'Tecumseh TS',    code: 'TCM',  coords: [-82.9035, 42.3360], corridorId: 'windsor-london',         type: 'Transmission', capacityMva: 720,   loadPct: 95, status: 'caution' },
-  { id: 'sub-chatham',     name: 'Chatham SS',     code: 'CHT',  coords: [-82.1809, 42.4048], corridorId: 'windsor-london',         type: 'Distribution', capacityMva: 320,   loadPct: 78, status: 'online' },
+  {
+    id: "sub-tecumseh",
+    name: "Tecumseh TS",
+    code: "TCM",
+    coords: [-82.9035, 42.336],
+    corridorId: "windsor-london",
+    type: "Transmission",
+    capacityMva: 720,
+    loadPct: 95,
+    status: "caution",
+  },
+  {
+    id: "sub-chatham",
+    name: "Chatham SS",
+    code: "CHT",
+    coords: [-82.1809, 42.4048],
+    corridorId: "windsor-london",
+    type: "Distribution",
+    capacityMva: 320,
+    loadPct: 78,
+    status: "online",
+  },
 
   // Toronto–Hamilton
-  { id: 'sub-burlington',  name: 'Burlington TS',  code: 'BUR',  coords: [-79.7990, 43.3255], corridorId: 'toronto-hamilton',       type: 'Transmission', capacityMva: 1_120, loadPct: 94, status: 'caution' },
-  { id: 'sub-horner',      name: 'Horner TS',      code: 'HRN',  coords: [-79.5132, 43.6014], corridorId: 'toronto-hamilton',       type: 'Distribution', capacityMva: 520,   loadPct: 82, status: 'online' },
+  {
+    id: "sub-burlington",
+    name: "Burlington TS",
+    code: "BUR",
+    coords: [-79.799, 43.3255],
+    corridorId: "toronto-hamilton",
+    type: "Transmission",
+    capacityMva: 1_120,
+    loadPct: 94,
+    status: "caution",
+  },
+  {
+    id: "sub-horner",
+    name: "Horner TS",
+    code: "HRN",
+    coords: [-79.5132, 43.6014],
+    corridorId: "toronto-hamilton",
+    type: "Distribution",
+    capacityMva: 520,
+    loadPct: 82,
+    status: "online",
+  },
 
   // Niagara
-  { id: 'sub-beck',        name: 'Sir Adam Beck',  code: 'BCK',  coords: [-79.0586, 43.1542], corridorId: 'niagara-stcatharines',  type: 'Generation',   capacityMva: 1_932, loadPct: 99, status: 'caution' },
-  { id: 'sub-niagara-stc', name: 'Allanburg TS',   code: 'ALB',  coords: [-79.2055, 43.0820], corridorId: 'niagara-stcatharines',  type: 'Transmission', capacityMva: 680,   loadPct: 86, status: 'online' },
+  {
+    id: "sub-beck",
+    name: "Sir Adam Beck",
+    code: "BCK",
+    coords: [-79.0586, 43.1542],
+    corridorId: "niagara-stcatharines",
+    type: "Generation",
+    capacityMva: 1_932,
+    loadPct: 99,
+    status: "caution",
+  },
+  {
+    id: "sub-niagara-stc",
+    name: "Allanburg TS",
+    code: "ALB",
+    coords: [-79.2055, 43.082],
+    corridorId: "niagara-stcatharines",
+    type: "Transmission",
+    capacityMva: 680,
+    loadPct: 86,
+    status: "online",
+  },
 
   // Ottawa–Kingston
-  { id: 'sub-hawthorne',   name: 'Hawthorne TS',   code: 'HWT',  coords: [-75.6258, 45.3812], corridorId: 'ottawa-kingston',        type: 'Transmission', capacityMva: 1_240, loadPct: 73, status: 'online' },
-  { id: 'sub-lennox',      name: 'Lennox GS',      code: 'LNX',  coords: [-76.9762, 44.1581], corridorId: 'ottawa-kingston',        type: 'Generation',   capacityMva: 2_140, loadPct: 41, status: 'online' },
-  { id: 'sub-cataraqui',   name: 'Cataraqui TS',   code: 'CTQ',  coords: [-76.5419, 44.2566], corridorId: 'ottawa-kingston',        type: 'Transmission', capacityMva: 540,   loadPct: 71, status: 'online' },
+  {
+    id: "sub-hawthorne",
+    name: "Hawthorne TS",
+    code: "HWT",
+    coords: [-75.6258, 45.3812],
+    corridorId: "ottawa-kingston",
+    type: "Transmission",
+    capacityMva: 1_240,
+    loadPct: 73,
+    status: "online",
+  },
+  {
+    id: "sub-lennox",
+    name: "Lennox GS",
+    code: "LNX",
+    coords: [-76.9762, 44.1581],
+    corridorId: "ottawa-kingston",
+    type: "Generation",
+    capacityMva: 2_140,
+    loadPct: 41,
+    status: "online",
+  },
+  {
+    id: "sub-cataraqui",
+    name: "Cataraqui TS",
+    code: "CTQ",
+    coords: [-76.5419, 44.2566],
+    corridorId: "ottawa-kingston",
+    type: "Transmission",
+    capacityMva: 540,
+    loadPct: 71,
+    status: "online",
+  },
 
   // Sudbury–North Bay
-  { id: 'sub-crystal',     name: 'Crystal Falls',  code: 'CFL',  coords: [-80.0641, 46.3995], corridorId: 'sudbury-northbay',       type: 'Transmission', capacityMva: 320,   loadPct: 68, status: 'online' },
-  { id: 'sub-wawa',        name: 'Wawa TS',        code: 'WWA',  coords: [-84.7732, 47.9852], corridorId: 'thunderbay-sault',       type: 'Transmission', capacityMva: 180,   loadPct: 22, status: 'online' },
+  {
+    id: "sub-crystal",
+    name: "Crystal Falls",
+    code: "CFL",
+    coords: [-80.0641, 46.3995],
+    corridorId: "sudbury-northbay",
+    type: "Transmission",
+    capacityMva: 320,
+    loadPct: 68,
+    status: "online",
+  },
+  {
+    id: "sub-wawa",
+    name: "Wawa TS",
+    code: "WWA",
+    coords: [-84.7732, 47.9852],
+    corridorId: "thunderbay-sault",
+    type: "Transmission",
+    capacityMva: 180,
+    loadPct: 22,
+    status: "online",
+  },
 
   // Kitchener–Toronto
-  { id: 'sub-detweiler',   name: 'Detweiler TS',   code: 'DTW',  coords: [-80.4710, 43.4205], corridorId: 'kitchener-toronto',      type: 'Transmission', capacityMva: 720,   loadPct: 88, status: 'caution' },
-  { id: 'sub-trafalgar',   name: 'Trafalgar TS',   code: 'TFG',  coords: [-79.7268, 43.5181], corridorId: 'kitchener-toronto',      type: 'Transmission', capacityMva: 980,   loadPct: 81, status: 'online' },
+  {
+    id: "sub-detweiler",
+    name: "Detweiler TS",
+    code: "DTW",
+    coords: [-80.471, 43.4205],
+    corridorId: "kitchener-toronto",
+    type: "Transmission",
+    capacityMva: 720,
+    loadPct: 88,
+    status: "caution",
+  },
+  {
+    id: "sub-trafalgar",
+    name: "Trafalgar TS",
+    code: "TFG",
+    coords: [-79.7268, 43.5181],
+    corridorId: "kitchener-toronto",
+    type: "Transmission",
+    capacityMva: 980,
+    loadPct: 81,
+    status: "online",
+  },
 
   // Windsor–Sarnia
-  { id: 'sub-lambton',     name: 'Lambton TS',     code: 'LBT',  coords: [-82.4970, 42.7820], corridorId: 'windsor-sarnia',         type: 'Transmission', capacityMva: 880,   loadPct: 87, status: 'caution' },
+  {
+    id: "sub-lambton",
+    name: "Lambton TS",
+    code: "LBT",
+    coords: [-82.497, 42.782],
+    corridorId: "windsor-sarnia",
+    type: "Transmission",
+    capacityMva: 880,
+    loadPct: 87,
+    status: "caution",
+  },
 
   // Toronto–Niagara
-  { id: 'sub-hannon',      name: 'Hannon TS',      code: 'HNN',  coords: [-79.8132, 43.1869], corridorId: 'toronto-niagara',        type: 'Transmission', capacityMva: 760,   loadPct: 83, status: 'online' },
+  {
+    id: "sub-hannon",
+    name: "Hannon TS",
+    code: "HNN",
+    coords: [-79.8132, 43.1869],
+    corridorId: "toronto-niagara",
+    type: "Transmission",
+    capacityMva: 760,
+    loadPct: 83,
+    status: "online",
+  },
 
   // Barrie–Toronto
-  { id: 'sub-essa',        name: 'Essa TS',        code: 'ESS',  coords: [-79.6890, 44.2682], corridorId: 'barrie-toronto',         type: 'Transmission', capacityMva: 640,   loadPct: 76, status: 'online' },
-  { id: 'sub-claireville', name: 'Claireville TS', code: 'CLV',  coords: [-79.6064, 43.7613], corridorId: 'barrie-toronto',         type: 'Transmission', capacityMva: 1_080, loadPct: 79, status: 'online' },
+  {
+    id: "sub-essa",
+    name: "Essa TS",
+    code: "ESS",
+    coords: [-79.689, 44.2682],
+    corridorId: "barrie-toronto",
+    type: "Transmission",
+    capacityMva: 640,
+    loadPct: 76,
+    status: "online",
+  },
+  {
+    id: "sub-claireville",
+    name: "Claireville TS",
+    code: "CLV",
+    coords: [-79.6064, 43.7613],
+    corridorId: "barrie-toronto",
+    type: "Transmission",
+    capacityMva: 1_080,
+    loadPct: 79,
+    status: "online",
+  },
 
   // London–Kitchener
-  { id: 'sub-wonderland',  name: 'Wonderland TS',  code: 'WND',  coords: [-81.3061, 43.0125], corridorId: 'london-kitchener',       type: 'Transmission', capacityMva: 480,   loadPct: 72, status: 'online' },
-  { id: 'sub-woodstock',   name: 'Woodstock TS',   code: 'WDS',  coords: [-80.7464, 43.1306], corridorId: 'london-kitchener',       type: 'Distribution', capacityMva: 240,   loadPct: 64, status: 'online' },
+  {
+    id: "sub-wonderland",
+    name: "Wonderland TS",
+    code: "WND",
+    coords: [-81.3061, 43.0125],
+    corridorId: "london-kitchener",
+    type: "Transmission",
+    capacityMva: 480,
+    loadPct: 72,
+    status: "online",
+  },
+  {
+    id: "sub-woodstock",
+    name: "Woodstock TS",
+    code: "WDS",
+    coords: [-80.7464, 43.1306],
+    corridorId: "london-kitchener",
+    type: "Distribution",
+    capacityMva: 240,
+    loadPct: 64,
+    status: "online",
+  },
 
   // Peterborough–Oshawa
-  { id: 'sub-cavan',       name: 'Cavan Monaghan', code: 'CVN',  coords: [-78.5102, 44.1820], corridorId: 'peterborough-oshawa',    type: 'Distribution', capacityMva: 180,   loadPct: 58, status: 'online' },
+  {
+    id: "sub-cavan",
+    name: "Cavan Monaghan",
+    code: "CVN",
+    coords: [-78.5102, 44.182],
+    corridorId: "peterborough-oshawa",
+    type: "Distribution",
+    capacityMva: 180,
+    loadPct: 58,
+    status: "online",
+  },
 
   // Kingston–Belleville
-  { id: 'sub-napanee',     name: 'Napanee SS',     code: 'NPN',  coords: [-76.9485, 44.2492], corridorId: 'kingston-belleville',    type: 'Distribution', capacityMva: 220,   loadPct: 61, status: 'online' },
-]
-
+  {
+    id: "sub-napanee",
+    name: "Napanee SS",
+    code: "NPN",
+    coords: [-76.9485, 44.2492],
+    corridorId: "kingston-belleville",
+    type: "Distribution",
+    capacityMva: 220,
+    loadPct: 61,
+    status: "online",
+  },
+];
 
 /* ─────────────────────────────────────────────
    HELPERS
    ───────────────────────────────────────────── */
 
-const fmt = (n: number) => n.toLocaleString('en-US')
+const fmt = (n: number) => n.toLocaleString("en-US");
 
 const levelColor: Record<Level, string> = {
-  critical: '#FF4D4D',
-  high:     '#FF8A3D',
-  moderate: '#F4C040',
-  low:      '#4ADE80',
-}
+  critical: "#FF4D4D",
+  high: "#FF8A3D",
+  moderate: "#F4C040",
+  low: "#4ADE80",
+};
 
 const factorColor: Record<FactorTone, string> = {
-  critical: '#FF4D4D',
-  high:     '#FF8A3D',
-  moderate: '#F4C040',
-  low:      '#4ADE80',
-  mute:     'rgba(255,255,255,.22)',
-}
+  critical: "#FF4D4D",
+  high: "#FF8A3D",
+  moderate: "#F4C040",
+  low: "#4ADE80",
+  mute: "rgba(255,255,255,.22)",
+};
 
 /* Centroid of all corridor endpoints — used as the initial map view */
-const ONTARIO_CENTER: [number, number] = [-79.5, 44.6]
+const ONTARIO_CENTER: [number, number] = [-79.5, 44.6];
 
 /* ─────────────────────────────────────────────
    SUB-COMPONENTS (charts)
    ───────────────────────────────────────────── */
 
 function Sparkline({ data, color }: { data: number[]; color: string }) {
-  const w = 110, h = 32
-  const min = Math.min(...data)
-  const max = Math.max(...data)
-  const range = max - min || 1
-  const stepX = w / (data.length - 1)
-  const points = data.map((v, i) => `${i * stepX},${h - ((v - min) / range) * (h - 4) - 2}`).join(' ')
+  const w = 110,
+    h = 32;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const stepX = w / (data.length - 1);
+  const points = data
+    .map((v, i) => `${i * stepX},${h - ((v - min) / range) * (h - 4) - 2}`)
+    .join(" ");
   return (
-    <svg className="sparkline" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+    <svg
+      className="sparkline"
+      viewBox={`0 0 ${w} ${h}`}
+      preserveAspectRatio="none"
+    >
       <polyline points={points} fill="none" stroke={color} strokeWidth="1.4" />
     </svg>
-  )
+  );
 }
 
 function TrendChart({ data, color }: { data: number[]; color: string }) {
-  const w = 260, h = 110
-  const padL = 22, padR = 8, padT = 8, padB = 18
-  const innerW = w - padL - padR
-  const innerH = h - padT - padB
-  const stepX = innerW / (data.length - 1)
+  const w = 260,
+    h = 110;
+  const padL = 22,
+    padR = 8,
+    padT = 8,
+    padB = 18;
+  const innerW = w - padL - padR;
+  const innerH = h - padT - padB;
+  const stepX = innerW / (data.length - 1);
   const points = data.map((v, i) => ({
     x: padL + i * stepX,
     y: padT + innerH - (v / 100) * innerH,
-  }))
-  const pathD = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
-  const days = ['Jul 3', 'Jul 4', 'Jul 5', 'Jul 6', 'Jul 7', 'Jul 8', 'Jul 9']
+  }));
+  const pathD = points
+    .map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`)
+    .join(" ");
+  const days = ["Jul 3", "Jul 4", "Jul 5", "Jul 6", "Jul 7", "Jul 8", "Jul 9"];
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="trend-svg">
       {[0, 25, 50, 75, 100].map((g) => {
-        const y = padT + innerH - (g / 100) * innerH
+        const y = padT + innerH - (g / 100) * innerH;
         return (
           <g key={g}>
-            <line x1={padL} y1={y} x2={w - padR} y2={y} className="trend-grid" />
-            <text x={padL - 4} y={y + 3} className="trend-axis">{g}</text>
+            <line
+              x1={padL}
+              y1={y}
+              x2={w - padR}
+              y2={y}
+              className="trend-grid"
+            />
+            <text x={padL - 4} y={y + 3} className="trend-axis">
+              {g}
+            </text>
           </g>
-        )
+        );
       })}
       <path d={pathD} className="trend-line" stroke={color} />
       {points.map((p, i) => (
         <circle key={i} cx={p.x} cy={p.y} r="1.8" fill={color} />
       ))}
       {days.map((d, i) => (
-        <text key={d} x={padL + i * stepX} y={h - 4} className="trend-axis trend-axis-x">{d}</text>
+        <text
+          key={d}
+          x={padL + i * stepX}
+          y={h - 4}
+          className="trend-axis trend-axis-x"
+        >
+          {d}
+        </text>
       ))}
     </svg>
-  )
+  );
 }
 
 function MiniDonut({ value, color }: { value: number; color: string }) {
-  const r = 14
-  const c = 2 * Math.PI * r
-  const offset = c - (value / 100) * c
+  const r = 14;
+  const c = 2 * Math.PI * r;
+  const offset = c - (value / 100) * c;
   return (
     <svg className="mini-donut" viewBox="0 0 36 36">
-      <circle cx="18" cy="18" r={r} stroke="rgba(255,255,255,.08)" strokeWidth="3.6" fill="none" />
-      <circle cx="18" cy="18" r={r} stroke={color} strokeWidth="3.6" fill="none"
-        strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
-        transform="rotate(-90 18 18)" />
+      <circle
+        cx="18"
+        cy="18"
+        r={r}
+        stroke="rgba(255,255,255,.08)"
+        strokeWidth="3.6"
+        fill="none"
+      />
+      <circle
+        cx="18"
+        cy="18"
+        r={r}
+        stroke={color}
+        strokeWidth="3.6"
+        fill="none"
+        strokeDasharray={c}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        transform="rotate(-90 18 18)"
+      />
     </svg>
-  )
+  );
 }
 
 /* ─────────────────────────────────────────────
@@ -776,38 +1336,47 @@ function MiniDonut({ value, color }: { value: number; color: string }) {
  * No API key required. Swap to Mapbox/MapTiler later by replacing this URL
  * and providing the appropriate accessToken/apiKey.
  */
-const MAP_STYLE_URL = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
+const MAP_STYLE_URL =
+  "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 
 function GridMap({
   activeId,
   onSelect,
   levelFilter,
+  onReady,
 }: {
-  activeId: string
-  onSelect: (id: string) => void
-  levelFilter: Set<Level>
+  activeId: string;
+  onSelect: (id: string) => void;
+  levelFilter: Set<Level>;
+  onReady?: (zoomIn: () => void, zoomOut: () => void) => void;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<MLMap | null>(null)
-  const markersRef = useRef<Marker[]>([])
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<MLMap | null>(null);
+  const markersRef = useRef<Marker[]>([]);
   /** City markers tracked with their level so we can hide them when filtered out. */
-  const cityMarkersRef = useRef<{ marker: Marker; level: Level; corridorId: string }[]>([])
+  const cityMarkersRef = useRef<
+    { marker: Marker; level: Level; corridorId: string }[]
+  >([]);
   /** Substation markers tracked with parent-corridor level for filter visibility. */
-  const subMarkersRef = useRef<{ marker: Marker; level: Level }[]>([])
-  const popupRef = useRef<Popup | null>(null)
-  const hoveredIdRef = useRef<string | null>(null)
-  const onSelectRef = useRef(onSelect)
-  const levelFilterRef = useRef(levelFilter)
-  const animRafRef = useRef<number | null>(null)
-  const [ready, setReady] = useState(false)
+  const subMarkersRef = useRef<{ marker: Marker; level: Level }[]>([]);
+  const popupRef = useRef<Popup | null>(null);
+  const hoveredIdRef = useRef<string | null>(null);
+  const onSelectRef = useRef(onSelect);
+  const levelFilterRef = useRef(levelFilter);
+  const animRafRef = useRef<number | null>(null);
+  const [ready, setReady] = useState(false);
 
   /* Keep latest props available inside long-lived map callbacks */
-  useEffect(() => { onSelectRef.current = onSelect }, [onSelect])
-  useEffect(() => { levelFilterRef.current = levelFilter }, [levelFilter])
+  useEffect(() => {
+    onSelectRef.current = onSelect;
+  }, [onSelect]);
+  useEffect(() => {
+    levelFilterRef.current = levelFilter;
+  }, [levelFilter]);
 
   /* Initialize map once */
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return
+    if (!containerRef.current || mapRef.current) return;
 
     const map = new maplibregl.Map({
       container: containerRef.current,
@@ -818,20 +1387,17 @@ function GridMap({
       maxZoom: 14,
       attributionControl: { compact: true },
       pitchWithRotate: false,
-    })
+    });
 
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
-
-    map.on('load', () => {
-
+    map.on("load", () => {
       /* ── CORRIDORS source (with feature IDs so we can use feature-state for hover) ── */
-      map.addSource('corridors', {
-        type: 'geojson',
-        promoteId: 'id',
+      map.addSource("corridors", {
+        type: "geojson",
+        promoteId: "id",
         data: {
-          type: 'FeatureCollection',
+          type: "FeatureCollection",
           features: CORRIDORS.map((c) => ({
-            type: 'Feature',
+            type: "Feature",
             id: c.id,
             properties: {
               id: c.id,
@@ -841,53 +1407,58 @@ function GridMap({
               stressIndex: c.stressIndex,
             },
             geometry: {
-              type: 'LineString',
+              type: "LineString",
               coordinates: [c.from.coords, c.to.coords],
             },
           })),
         },
-      })
+      });
 
       /* Outer glow */
       map.addLayer({
-        id: 'corridors-glow',
-        type: 'line',
-        source: 'corridors',
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        id: "corridors-glow",
+        type: "line",
+        source: "corridors",
+        layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          'line-color': ['get', 'color'],
-          'line-width': [
-            'case',
-            ['==', ['get', 'id'], activeId], 16,
-            ['boolean', ['feature-state', 'hover'], false], 12,
+          "line-color": ["get", "color"],
+          "line-width": [
+            "case",
+            ["==", ["get", "id"], activeId],
+            16,
+            ["boolean", ["feature-state", "hover"], false],
+            12,
             8,
           ],
-          'line-opacity': [
-            'case',
-            ['boolean', ['feature-state', 'hover'], false], 0.32,
+          "line-opacity": [
+            "case",
+            ["boolean", ["feature-state", "hover"], false],
+            0.32,
             0.18,
           ],
-          'line-blur': 6,
+          "line-blur": 6,
         },
-      })
+      });
 
       /* Visible corridor stroke */
       map.addLayer({
-        id: 'corridors-line',
-        type: 'line',
-        source: 'corridors',
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        id: "corridors-line",
+        type: "line",
+        source: "corridors",
+        layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          'line-color': ['get', 'color'],
-          'line-width': [
-            'case',
-            ['==', ['get', 'id'], activeId], 5.5,
-            ['boolean', ['feature-state', 'hover'], false], 4.5,
+          "line-color": ["get", "color"],
+          "line-width": [
+            "case",
+            ["==", ["get", "id"], activeId],
+            5.5,
+            ["boolean", ["feature-state", "hover"], false],
+            4.5,
             3,
           ],
-          'line-opacity': 0.95,
+          "line-opacity": 0.95,
         },
-      })
+      });
 
       /**
        * FLOW LAYER — marching dashes on top of the line to convey
@@ -895,53 +1466,53 @@ function GridMap({
        * This is the canonical MapLibre/Mapbox "ant trail" technique.
        */
       map.addLayer({
-        id: 'corridors-flow',
-        type: 'line',
-        source: 'corridors',
-        layout: { 'line-cap': 'butt', 'line-join': 'round' },
+        id: "corridors-flow",
+        type: "line",
+        source: "corridors",
+        layout: { "line-cap": "butt", "line-join": "round" },
         paint: {
-          'line-color': '#ffffff',
-          'line-opacity': 0.55,
-          'line-width': [
-            'case',
-            ['==', ['get', 'id'], activeId], 2.6,
-            1.6,
-          ],
-          'line-dasharray': [0, 4, 3],
+          "line-color": "#ffffff",
+          "line-opacity": 0.55,
+          "line-width": ["case", ["==", ["get", "id"], activeId], 2.6, 1.6],
+          "line-dasharray": [0, 4, 3],
         },
-      })
+      });
 
       /* 14 pre-shifted dash patterns → smooth marching animation when cycled */
       const dashSeq: number[][] = [
-        [0,   4, 3],
+        [0, 4, 3],
         [0.5, 4, 2.5],
-        [1,   4, 2],
+        [1, 4, 2],
         [1.5, 4, 1.5],
-        [2,   4, 1],
+        [2, 4, 1],
         [2.5, 4, 0.5],
-        [3,   4, 0],
+        [3, 4, 0],
         [0, 0.5, 3, 3.5],
-        [0, 1,   3, 3],
+        [0, 1, 3, 3],
         [0, 1.5, 3, 2.5],
-        [0, 2,   3, 2],
+        [0, 2, 3, 2],
         [0, 2.5, 3, 1.5],
-        [0, 3,   3, 1],
+        [0, 3, 3, 1],
         [0, 3.5, 3, 0.5],
-      ]
-      let dashStep = 0
-      let lastTs = 0
-      const FRAME_MS = 70   // lower = faster flow
+      ];
+      let dashStep = 0;
+      let lastTs = 0;
+      const FRAME_MS = 70; // lower = faster flow
       const animate = (ts: number) => {
         if (ts - lastTs >= FRAME_MS) {
-          dashStep = (dashStep + 1) % dashSeq.length
-          if (map.getLayer('corridors-flow')) {
-            map.setPaintProperty('corridors-flow', 'line-dasharray', dashSeq[dashStep])
+          dashStep = (dashStep + 1) % dashSeq.length;
+          if (map.getLayer("corridors-flow")) {
+            map.setPaintProperty(
+              "corridors-flow",
+              "line-dasharray",
+              dashSeq[dashStep],
+            );
           }
-          lastTs = ts
+          lastTs = ts;
         }
-        animRafRef.current = requestAnimationFrame(animate)
-      }
-      animRafRef.current = requestAnimationFrame(animate)
+        animRafRef.current = requestAnimationFrame(animate);
+      };
+      animRafRef.current = requestAnimationFrame(animate);
 
       /**
        * Wide INVISIBLE hit-area layer on top — makes clicking the
@@ -949,47 +1520,51 @@ function GridMap({
        * This is the standard MapLibre/Mapbox pattern for easy hit targets.
        */
       map.addLayer({
-        id: 'corridors-hit',
-        type: 'line',
-        source: 'corridors',
-        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        id: "corridors-hit",
+        type: "line",
+        source: "corridors",
+        layout: { "line-cap": "round", "line-join": "round" },
         paint: {
-          'line-color': '#ffffff',
-          'line-opacity': 0,        // invisible
-          'line-width': 28,         // huge hit area
+          "line-color": "#ffffff",
+          "line-opacity": 0, // invisible
+          "line-width": 28, // huge hit area
         },
-      })
+      });
 
       /* Click handler on the wide hit layer — selects the corridor AND opens a popup */
-      map.on('click', 'corridors-hit', (e) => {
-        const f = e.features?.[0]
-        const id = f?.properties?.id
-        if (typeof id !== 'string') return
+      map.on("click", "corridors-hit", (e) => {
+        const f = e.features?.[0];
+        const id = f?.properties?.id;
+        if (typeof id !== "string") return;
 
-        const c = CORRIDORS.find((x) => x.id === id)
-        if (!c) return
+        const c = CORRIDORS.find((x) => x.id === id);
+        if (!c) return;
 
         /* update selection (side panel will reflect this) */
-        onSelectRef.current(id)
+        onSelectRef.current(id);
 
         /* close any existing popup */
-        popupRef.current?.remove()
+        popupRef.current?.remove();
 
-        const col = levelColor[c.level]
+        const col = levelColor[c.level];
 
         /* inline sparkline as raw SVG */
-        const sparkW = 200, sparkH = 38
-        const minV = Math.min(...c.trend)
-        const maxV = Math.max(...c.trend)
-        const rng = maxV - minV || 1
-        const stepX = sparkW / (c.trend.length - 1)
+        const sparkW = 200,
+          sparkH = 38;
+        const minV = Math.min(...c.trend);
+        const maxV = Math.max(...c.trend);
+        const rng = maxV - minV || 1;
+        const stepX = sparkW / (c.trend.length - 1);
         const pts = c.trend
-          .map((v, i) => `${i * stepX},${sparkH - ((v - minV) / rng) * (sparkH - 4) - 2}`)
-          .join(' ')
+          .map(
+            (v, i) =>
+              `${i * stepX},${sparkH - ((v - minV) / rng) * (sparkH - 4) - 2}`,
+          )
+          .join(" ");
         const sparkSvg = `
           <svg viewBox="0 0 ${sparkW} ${sparkH}" preserveAspectRatio="none" class="corr-popup-spark">
             <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.5" />
-          </svg>`
+          </svg>`;
 
         const html = `
           <div class="corr-popup">
@@ -1008,7 +1583,7 @@ function GridMap({
             <div class="corr-popup-grid">
               <div class="corr-popup-cell">
                 <span class="corr-popup-cell-lbl">AFFECTED</span>
-                <span class="corr-popup-cell-val">${c.customers.toLocaleString('en-US')}</span>
+                <span class="corr-popup-cell-val">${c.customers.toLocaleString("en-US")}</span>
               </div>
               <div class="corr-popup-cell">
                 <span class="corr-popup-cell-lbl">OUTAGE RISK (24H)</span>
@@ -1020,132 +1595,153 @@ function GridMap({
               </div>
               <div class="corr-popup-cell">
                 <span class="corr-popup-cell-lbl">LOAD (MW)</span>
-                <span class="corr-popup-cell-val">${c.bottom.loadMw.toLocaleString('en-US')}</span>
+                <span class="corr-popup-cell-val">${c.bottom.loadMw.toLocaleString("en-US")}</span>
               </div>
             </div>
           </div>
-        `
+        `;
 
         const popup = new maplibregl.Popup({
           offset: 14,
           closeButton: true,
           closeOnClick: false,
-          className: 'corr-popup-wrap',
-          maxWidth: '320px',
+          className: "corr-popup-wrap",
+          maxWidth: "320px",
         })
           .setLngLat(e.lngLat)
           .setHTML(html)
-          .addTo(map)
+          .addTo(map);
 
-        popupRef.current = popup
-      })
+        popupRef.current = popup;
+      });
 
       /* Hover handler — set/unset feature-state for visual feedback */
-      map.on('mousemove', 'corridors-hit', (e) => {
-        const f = e.features?.[0]
-        const id = f?.properties?.id
-        if (typeof id !== 'string') return
+      map.on("mousemove", "corridors-hit", (e) => {
+        const f = e.features?.[0];
+        const id = f?.properties?.id;
+        if (typeof id !== "string") return;
 
-        map.getCanvas().style.cursor = 'pointer'
+        map.getCanvas().style.cursor = "pointer";
 
         if (hoveredIdRef.current && hoveredIdRef.current !== id) {
           map.setFeatureState(
-            { source: 'corridors', id: hoveredIdRef.current },
-            { hover: false }
-          )
+            { source: "corridors", id: hoveredIdRef.current },
+            { hover: false },
+          );
         }
-        hoveredIdRef.current = id
-        map.setFeatureState({ source: 'corridors', id }, { hover: true })
-      })
+        hoveredIdRef.current = id;
+        map.setFeatureState({ source: "corridors", id }, { hover: true });
+      });
 
-      map.on('mouseleave', 'corridors-hit', () => {
-        map.getCanvas().style.cursor = ''
+      map.on("mouseleave", "corridors-hit", () => {
+        map.getCanvas().style.cursor = "";
         if (hoveredIdRef.current) {
           map.setFeatureState(
-            { source: 'corridors', id: hoveredIdRef.current },
-            { hover: false }
-          )
-          hoveredIdRef.current = null
+            { source: "corridors", id: hoveredIdRef.current },
+            { hover: false },
+          );
+          hoveredIdRef.current = null;
         }
-      })
+      });
 
       /* ── CITY MARKERS (DOM-based, clickable) ── */
-      const seen = new Map<string, { city: { name: string; coords: [number, number] }; corridorId: string; level: Level }>()
+      const seen = new Map<
+        string,
+        {
+          city: { name: string; coords: [number, number] };
+          corridorId: string;
+          level: Level;
+        }
+      >();
       CORRIDORS.forEach((c) => {
-        ;[c.from, c.to].forEach((city) => {
-          const key = `${city.name}-${city.coords[0]}`
+        [c.from, c.to].forEach((city) => {
+          const key = `${city.name}-${city.coords[0]}`;
           /* If we've seen this city, keep the highest-stress corridor reference */
-          const existing = seen.get(key)
+          const existing = seen.get(key);
           if (existing) {
-            const order: Record<Level, number> = { critical: 4, high: 3, moderate: 2, low: 1 }
+            const order: Record<Level, number> = {
+              critical: 4,
+              high: 3,
+              moderate: 2,
+              low: 1,
+            };
             if (order[c.level] > order[existing.level]) {
-              seen.set(key, { city, corridorId: c.id, level: c.level })
+              seen.set(key, { city, corridorId: c.id, level: c.level });
             }
           } else {
-            seen.set(key, { city, corridorId: c.id, level: c.level })
+            seen.set(key, { city, corridorId: c.id, level: c.level });
           }
-        })
-      })
+        });
+      });
 
       seen.forEach(({ city, corridorId, level }) => {
-        const el = document.createElement('div')
-        el.className = 'city-marker'
-        el.setAttribute('role', 'button')
-        el.setAttribute('tabindex', '0')
-        el.setAttribute('aria-label', `Select corridor at ${city.name}`)
-        el.dataset.level = level
+        const el = document.createElement("div");
+        el.className = "city-marker";
+        el.setAttribute("role", "button");
+        el.setAttribute("tabindex", "0");
+        el.setAttribute("aria-label", `Select corridor at ${city.name}`);
+        el.dataset.level = level;
         el.innerHTML = `
           <span class="city-marker-pulse" style="border-color:${levelColor[level]}"></span>
           <span class="city-marker-dot" style="background:${levelColor[level]}"></span>
           <span class="city-marker-label">${city.name.toUpperCase()}</span>
-        `
+        `;
 
-        const select = () => onSelectRef.current(corridorId)
-        el.addEventListener('click', (ev) => {
-          ev.stopPropagation()
-          select()
-        })
-        el.addEventListener('keydown', (ev) => {
-          if ((ev as KeyboardEvent).key === 'Enter' || (ev as KeyboardEvent).key === ' ') {
-            ev.preventDefault()
-            select()
+        const select = () => onSelectRef.current(corridorId);
+        el.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          select();
+        });
+        el.addEventListener("keydown", (ev) => {
+          if (
+            (ev as KeyboardEvent).key === "Enter" ||
+            (ev as KeyboardEvent).key === " "
+          ) {
+            ev.preventDefault();
+            select();
           }
-        })
+        });
 
-        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+        const marker = new maplibregl.Marker({ element: el, anchor: "center" })
           .setLngLat(city.coords)
-          .addTo(map)
-        markersRef.current.push(marker)
-        cityMarkersRef.current.push({ marker, level, corridorId })
-      })
+          .addTo(map);
+        markersRef.current.push(marker);
+        cityMarkersRef.current.push({ marker, level, corridorId });
+      });
 
       /* ── SUBSTATION MARKERS (smaller, clickable → popup + selects parent corridor) ── */
       SUBSTATIONS.forEach((sub) => {
-        const el = document.createElement('div')
-        el.className = `sub-marker sub-status-${sub.status}`
-        el.setAttribute('role', 'button')
-        el.setAttribute('tabindex', '0')
-        el.setAttribute('aria-label', `Substation ${sub.name}`)
+        const el = document.createElement("div");
+        el.className = `sub-marker sub-status-${sub.status}`;
+        el.setAttribute("role", "button");
+        el.setAttribute("tabindex", "0");
+        el.setAttribute("aria-label", `Substation ${sub.name}`);
         el.innerHTML = `
           <span class="sub-marker-ring"></span>
           <span class="sub-marker-core"></span>
-        `
+        `;
 
         const statusLabel: Record<SubStatus, string> = {
-          online:  '<span class="sub-pop-status sub-pop-status-online">ONLINE</span>',
-          caution: '<span class="sub-pop-status sub-pop-status-caution">CAUTION</span>',
-          offline: '<span class="sub-pop-status sub-pop-status-offline">OFFLINE</span>',
-        }
+          online:
+            '<span class="sub-pop-status sub-pop-status-online">ONLINE</span>',
+          caution:
+            '<span class="sub-pop-status sub-pop-status-caution">CAUTION</span>',
+          offline:
+            '<span class="sub-pop-status sub-pop-status-offline">OFFLINE</span>',
+        };
 
         const loadTone =
-          sub.loadPct >= 90 ? '#FF4D4D' :
-          sub.loadPct >= 80 ? '#FF8A3D' :
-          sub.loadPct >= 65 ? '#F4C040' :
-          '#4ADE80'
+          sub.loadPct >= 90
+            ? "#FF4D4D"
+            : sub.loadPct >= 80
+              ? "#FF8A3D"
+              : sub.loadPct >= 65
+                ? "#F4C040"
+                : "#4ADE80";
 
         const openPopup = () => {
           /* close any existing popup */
-          popupRef.current?.remove()
+          popupRef.current?.remove();
 
           const html = `
             <div class="sub-popup">
@@ -1159,7 +1755,7 @@ function GridMap({
               </div>
               <div class="sub-popup-row">
                 <span class="sub-popup-lbl">CAPACITY</span>
-                <span class="sub-popup-val">${sub.capacityMva.toLocaleString('en-US')} MVA</span>
+                <span class="sub-popup-val">${sub.capacityMva.toLocaleString("en-US")} MVA</span>
               </div>
               <div class="sub-popup-row">
                 <span class="sub-popup-lbl">CURRENT LOAD</span>
@@ -1175,147 +1771,168 @@ function GridMap({
                 </button>
               </div>
             </div>
-          `
+          `;
 
           const popup = new maplibregl.Popup({
             offset: 14,
             closeButton: false,
             closeOnClick: true,
-            className: 'sub-popup-wrap',
-            maxWidth: '260px',
+            className: "sub-popup-wrap",
+            maxWidth: "260px",
           })
             .setLngLat(sub.coords)
             .setHTML(html)
-            .addTo(map)
+            .addTo(map);
 
           /* Hook the "View corridor" button inside the popup */
           setTimeout(() => {
-            const btn = document.querySelector(`.sub-popup-cta[data-corridor-id="${sub.corridorId}"]`) as HTMLElement | null
-            btn?.addEventListener('click', () => {
-              onSelectRef.current(sub.corridorId)
-              popup.remove()
-            })
-          }, 0)
+            const btn = document.querySelector(
+              `.sub-popup-cta[data-corridor-id="${sub.corridorId}"]`,
+            ) as HTMLElement | null;
+            btn?.addEventListener("click", () => {
+              onSelectRef.current(sub.corridorId);
+              popup.remove();
+            });
+          }, 0);
 
-          popupRef.current = popup
-        }
+          popupRef.current = popup;
+        };
 
-        el.addEventListener('click', (ev) => {
-          ev.stopPropagation()
-          openPopup()
-        })
-        el.addEventListener('keydown', (ev) => {
-          if ((ev as KeyboardEvent).key === 'Enter' || (ev as KeyboardEvent).key === ' ') {
-            ev.preventDefault()
-            openPopup()
+        el.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          openPopup();
+        });
+        el.addEventListener("keydown", (ev) => {
+          if (
+            (ev as KeyboardEvent).key === "Enter" ||
+            (ev as KeyboardEvent).key === " "
+          ) {
+            ev.preventDefault();
+            openPopup();
           }
-        })
+        });
 
-        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+        const marker = new maplibregl.Marker({ element: el, anchor: "center" })
           .setLngLat(sub.coords)
-          .addTo(map)
-        markersRef.current.push(marker)
+          .addTo(map);
+        markersRef.current.push(marker);
 
         /* Track level via the parent corridor for filter visibility */
-        const parentCorridor = CORRIDORS.find((c) => c.id === sub.corridorId)
+        const parentCorridor = CORRIDORS.find((c) => c.id === sub.corridorId);
         if (parentCorridor) {
-          subMarkersRef.current.push({ marker, level: parentCorridor.level })
+          subMarkersRef.current.push({ marker, level: parentCorridor.level });
         }
-      })
+      });
 
-      setReady(true)
-    })
+      setReady(true);
+      onReady?.(
+        () => mapRef.current?.zoomIn({ duration: 280 }),
+        () => mapRef.current?.zoomOut({ duration: 280 }),
+      );
+    });
 
-    mapRef.current = map
+    mapRef.current = map;
     return () => {
-      if (animRafRef.current !== null) cancelAnimationFrame(animRafRef.current)
-      animRafRef.current = null
-      popupRef.current?.remove()
-      popupRef.current = null
-      markersRef.current.forEach((m) => m.remove())
-      markersRef.current = []
-      cityMarkersRef.current = []
-      subMarkersRef.current = []
-      map.remove()
-      mapRef.current = null
-    }
+      if (animRafRef.current !== null) cancelAnimationFrame(animRafRef.current);
+      animRafRef.current = null;
+      popupRef.current?.remove();
+      popupRef.current = null;
+      markersRef.current.forEach((m) => m.remove());
+      markersRef.current = [];
+      cityMarkersRef.current = [];
+      subMarkersRef.current = [];
+      map.remove();
+      mapRef.current = null;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, []);
 
   /* When the active corridor changes — update paint expressions and fly to it */
   useEffect(() => {
-    const map = mapRef.current
-    if (!map || !ready) return
+    const map = mapRef.current;
+    if (!map || !ready) return;
 
-    map.setPaintProperty('corridors-line', 'line-width', [
-      'case',
-      ['==', ['get', 'id'], activeId], 5.5,
-      ['boolean', ['feature-state', 'hover'], false], 4.5,
+    map.setPaintProperty("corridors-line", "line-width", [
+      "case",
+      ["==", ["get", "id"], activeId],
+      5.5,
+      ["boolean", ["feature-state", "hover"], false],
+      4.5,
       3,
-    ])
-    map.setPaintProperty('corridors-glow', 'line-width', [
-      'case',
-      ['==', ['get', 'id'], activeId], 16,
-      ['boolean', ['feature-state', 'hover'], false], 12,
+    ]);
+    map.setPaintProperty("corridors-glow", "line-width", [
+      "case",
+      ["==", ["get", "id"], activeId],
+      16,
+      ["boolean", ["feature-state", "hover"], false],
+      12,
       8,
-    ])
-    if (map.getLayer('corridors-flow')) {
-      map.setPaintProperty('corridors-flow', 'line-width', [
-        'case',
-        ['==', ['get', 'id'], activeId], 2.6,
+    ]);
+    if (map.getLayer("corridors-flow")) {
+      map.setPaintProperty("corridors-flow", "line-width", [
+        "case",
+        ["==", ["get", "id"], activeId],
+        2.6,
         1.6,
-      ])
+      ]);
     }
 
-    const c = CORRIDORS.find((x) => x.id === activeId)
+    const c = CORRIDORS.find((x) => x.id === activeId);
     if (c) {
-      const midLng = (c.from.coords[0] + c.to.coords[0]) / 2
-      const midLat = (c.from.coords[1] + c.to.coords[1]) / 2
+      const midLng = (c.from.coords[0] + c.to.coords[0]) / 2;
+      const midLat = (c.from.coords[1] + c.to.coords[1]) / 2;
       map.flyTo({
         center: [midLng, midLat],
         zoom: 7.6,
         speed: 0.9,
         curve: 1.4,
         essential: true,
-      })
+      });
     }
-  }, [activeId, ready])
+  }, [activeId, ready]);
 
   /* When the level filter changes — hide/show layers and markers */
   useEffect(() => {
-    const map = mapRef.current
-    if (!map || !ready) return
+    const map = mapRef.current;
+    if (!map || !ready) return;
 
-    const visibleLevels = Array.from(levelFilter)
+    const visibleLevels = Array.from(levelFilter);
 
     /* Each corridor line/glow/hit/flow layer filtered by `level` property */
     const filterExpr: any = [
-      'in',
-      ['get', 'level'],
-      ['literal', visibleLevels],
-    ]
-    ;['corridors-line', 'corridors-glow', 'corridors-hit', 'corridors-flow'].forEach((id) => {
-      if (map.getLayer(id)) map.setFilter(id, filterExpr)
-    })
+      "in",
+      ["get", "level"],
+      ["literal", visibleLevels],
+    ];
+    [
+      "corridors-line",
+      "corridors-glow",
+      "corridors-hit",
+      "corridors-flow",
+    ].forEach((id) => {
+      if (map.getLayer(id)) map.setFilter(id, filterExpr);
+    });
 
     /* DOM markers — set display by checking each marker's level */
     cityMarkersRef.current.forEach(({ marker, level }) => {
-      const visible = levelFilter.has(level)
-      marker.getElement().style.display = visible ? '' : 'none'
-    })
+      const visible = levelFilter.has(level);
+      marker.getElement().style.display = visible ? "" : "none";
+    });
     subMarkersRef.current.forEach(({ marker, level }) => {
-      const visible = levelFilter.has(level)
-      marker.getElement().style.display = visible ? '' : 'none'
-    })
+      const visible = levelFilter.has(level);
+      marker.getElement().style.display = visible ? "" : "none";
+    });
 
     /* If an open popup belongs to a hidden corridor, dismiss it */
     if (popupRef.current && !visibleLevels.length) {
-      popupRef.current.remove()
-      popupRef.current = null
+      popupRef.current.remove();
+      popupRef.current = null;
     }
-  }, [levelFilter, ready])
+  }, [levelFilter, ready]);
 
-  return <div ref={containerRef} className="gridmap" aria-label="Ontario grid map" />
+  return (
+    <div ref={containerRef} className="gridmap" aria-label="Ontario grid map" />
+  );
 }
 
 /* ─────────────────────────────────────────────
@@ -1323,66 +1940,159 @@ function GridMap({
    ───────────────────────────────────────────── */
 
 export default function PlatformPage() {
-  const [exploring, setExploring] = useState(false)
-  const [activeId, setActiveId] = useState<string>('toronto-oshawa')
+  const [exploring, setExploring] = useState(false);
+  const [activeId, setActiveId] = useState<string>("toronto-oshawa");
   const [levelFilter, setLevelFilter] = useState<Set<Level>>(
-    () => new Set<Level>(['critical', 'high', 'moderate', 'low'])
-  )
-  const data = CORRIDORS.find((c) => c.id === activeId)!
-  const color = levelColor[data.level]
+    () => new Set<Level>(["critical", "high", "moderate", "low"]),
+  );
+  const data = CORRIDORS.find((c) => c.id === activeId)!;
+  const color = levelColor[data.level];
 
   /** Toggle one severity in/out of the filter set */
   const toggleLevel = useCallback((lvl: Level) => {
     setLevelFilter((prev) => {
-      const next = new Set(prev)
+      const next = new Set(prev);
       if (next.has(lvl)) {
         /* never let user fully empty the set — at least one stays visible */
-        if (next.size > 1) next.delete(lvl)
+        if (next.size > 1) next.delete(lvl);
       } else {
-        next.add(lvl)
+        next.add(lvl);
       }
-      return next
-    })
-  }, [])
+      return next;
+    });
+  }, []);
 
   const resetFilter = useCallback(() => {
-    setLevelFilter(new Set<Level>(['critical', 'high', 'moderate', 'low']))
-  }, [])
+    setLevelFilter(new Set<Level>(["critical", "high", "moderate", "low"]));
+  }, []);
 
-  const allVisible = levelFilter.size === 4
+  const allVisible = levelFilter.size === 4;
 
-  const handleSelect = useCallback((id: string) => setActiveId(id), [])
+  const handleSelect = useCallback((id: string) => setActiveId(id), []);
+
+  const zoomInFn = useRef<() => void>(() => {});
+  const zoomOutFn = useRef<() => void>(() => {});
+
+  const handleMapReady = useCallback((zIn: () => void, zOut: () => void) => {
+    zoomInFn.current = zIn;
+    zoomOutFn.current = zOut;
+  }, []);
 
   /* ── ESC closes explore mode ── */
   useEffect(() => {
-    if (!exploring) return
+    if (!exploring) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setExploring(false)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [exploring])
+      if (e.key === "Escape") setExploring(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [exploring]);
 
   return (
-    <main className={`platform-page ${exploring ? 'is-exploring' : 'is-intro'}`}>
+    <main
+      className={`platform-page ${exploring ? "is-exploring" : "is-intro"}`}
+    >
       {/* ── FULL-SCREEN MAP (always present, always behind) ── */}
       <div className="map-layer">
-        <GridMap activeId={activeId} onSelect={handleSelect} levelFilter={levelFilter} />
+        <GridMap
+          activeId={activeId}
+          onSelect={handleSelect}
+          levelFilter={levelFilter}
+          onReady={handleMapReady}
+        />
         <div className="map-vignette" aria-hidden />
         <div className="map-scrim" aria-hidden />
       </div>
+
+      {/* Zoom controls — only visible in explore mode */}
+      {exploring && (
+        <div className="map-zoom-controls">
+          <button
+            type="button"
+            className="map-zoom-btn"
+            aria-label="Zoom in"
+            onClick={() => zoomInFn.current()}
+          >
+            <svg
+              viewBox="0 0 18 18"
+              width="16"
+              height="16"
+              fill="none"
+              aria-hidden
+            >
+              <line
+                x1="9"
+                y1="3"
+                x2="9"
+                y2="15"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <line
+                x1="3"
+                y1="9"
+                x2="15"
+                y2="9"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+          <div className="map-zoom-sep" />
+          <button
+            type="button"
+            className="map-zoom-btn"
+            aria-label="Zoom out"
+            onClick={() => zoomOutFn.current()}
+          >
+            <svg
+              viewBox="0 0 18 18"
+              width="16"
+              height="16"
+              fill="none"
+              aria-hidden
+            >
+              <line
+                x1="3"
+                y1="9"
+                x2="15"
+                y2="9"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* ── TOP BAR (always visible) ── */}
       <header className="topbar">
         <Link href="/" className="topbar-back" aria-label="Back to home">
           <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>
-            <path d="M15 6 L9 12 L15 18" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+              d="M15 6 L9 12 L15 18"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
           <span>Home</span>
         </Link>
 
         <div className="topbar-logo">
-          <Image src="/logo_zeus.png" alt="ZEUS" width={72} height={22} priority className="topbar-logo-img" />
+          <Image
+            src="/logo_zeus.png"
+            alt="ZEUS"
+            width={72}
+            height={22}
+            priority
+            className="topbar-logo-img"
+          />
         </div>
 
         <div className="topbar-status">
@@ -1396,7 +2106,7 @@ export default function PlatformPage() {
       <div className="filter-row" aria-hidden={!exploring}>
         <button
           type="button"
-          className={`filter-chip filter-chip-all ${allVisible ? 'is-active' : ''}`}
+          className={`filter-chip filter-chip-all ${allVisible ? "is-active" : ""}`}
           onClick={resetFilter}
           aria-pressed={allVisible}
         >
@@ -1406,23 +2116,28 @@ export default function PlatformPage() {
 
         <span className="filter-row-sep" aria-hidden />
 
-        {(['critical', 'high', 'moderate', 'low'] as Level[]).map((lvl) => {
-          const active = levelFilter.has(lvl)
-          const count = CORRIDORS.filter((c) => c.level === lvl).length
+        {(["critical", "high", "moderate", "low"] as Level[]).map((lvl) => {
+          const active = levelFilter.has(lvl);
+          const count = CORRIDORS.filter((c) => c.level === lvl).length;
           return (
             <button
               key={lvl}
               type="button"
-              className={`filter-chip filter-chip-${lvl} ${active ? 'is-active' : ''}`}
+              className={`filter-chip filter-chip-${lvl} ${active ? "is-active" : ""}`}
               onClick={() => toggleLevel(lvl)}
               aria-pressed={active}
-              style={{ ['--chip-color' as string]: levelColor[lvl] } as Record<string, string>}
+              style={
+                { ["--chip-color" as string]: levelColor[lvl] } as Record<
+                  string,
+                  string
+                >
+              }
             >
               <span className="filter-chip-dot" />
               {lvl.toUpperCase()}
               <span className="filter-chip-count">{count}</span>
             </button>
-          )
+          );
         })}
       </div>
 
@@ -1436,13 +2151,14 @@ export default function PlatformPage() {
 
           <h1 className="intro-title">
             The grid, <span className="intro-title-accent">interactively</span>
-            <br />mapped in real time.
+            <br />
+            mapped in real time.
           </h1>
 
           <p className="intro-sub">
             Select any corridor across Ontario to see live stress diagnostics,
-            customer impact, and forecasted load disruption — all updating from a
-            single source of truth.
+            customer impact, and forecasted load disruption — all updating from
+            a single source of truth.
           </p>
 
           <div className="intro-actions">
@@ -1454,7 +2170,14 @@ export default function PlatformPage() {
               <span className="intro-cta-label">Explore the Grid</span>
               <span className="intro-cta-arrow" aria-hidden>
                 <svg viewBox="0 0 24 24" width="16" height="16">
-                  <path d="M5 12 L19 12 M13 6 L19 12 L13 18" stroke="currentColor" strokeWidth="1.7" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                  <path
+                    d="M5 12 L19 12 M13 6 L19 12 L13 18"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
               </span>
             </button>
@@ -1491,8 +2214,8 @@ export default function PlatformPage() {
         <div className="panel-head">
           <h2 className="panel-h2">STRESS INDEX</h2>
           <p className="panel-desc">
-            Real-time condition and risk of Ontario&apos;s energy
-            transmission and distribution infrastructure.
+            Real-time condition and risk of Ontario&apos;s energy transmission
+            and distribution infrastructure.
           </p>
         </div>
 
@@ -1500,19 +2223,29 @@ export default function PlatformPage() {
           <div className="metric-label">PROVINCIAL STRESS INDEX</div>
           <div className="metric-row">
             <div className="metric-main">
-              <span className="metric-value" style={{ color }}>{data.stressIndex}</span>
-              <span className="metric-status" style={{ color }}>{data.level.toUpperCase()}</span>
+              <span className="metric-value" style={{ color }}>
+                {data.stressIndex}
+              </span>
+              <span className="metric-status" style={{ color }}>
+                {data.level.toUpperCase()}
+              </span>
             </div>
             <Sparkline data={data.trend} color={color} />
           </div>
           <div className="metric-delta">
-            <span className="delta-up" style={{ color }}>↑ {data.delta}</span>
+            <span className="delta-up" style={{ color }}>
+              ↑ {data.delta}
+            </span>
             <span className="delta-text">vs yesterday</span>
           </div>
           <div className="scale">
             <div className="scale-bar" />
             <div className="scale-labels">
-              <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
+              <span>0</span>
+              <span>25</span>
+              <span>50</span>
+              <span>75</span>
+              <span>100</span>
             </div>
           </div>
         </div>
@@ -1522,14 +2255,40 @@ export default function PlatformPage() {
           <div className="metric-row">
             <span className="metric-value-lg">{fmt(data.customers)}</span>
             <svg viewBox="0 0 24 24" className="metric-icon" aria-hidden>
-              <circle cx="9" cy="8" r="3.2" stroke="currentColor" strokeWidth="1.2" fill="none" />
-              <circle cx="16" cy="9" r="2.4" stroke="currentColor" strokeWidth="1.2" fill="none" />
-              <path d="M3.5 18c0-2.8 2.5-4.8 5.5-4.8s5.5 2 5.5 4.8" stroke="currentColor" strokeWidth="1.2" fill="none" />
-              <path d="M14 18c0-2.2 1.7-3.8 4-3.8s4 1.6 4 3.8" stroke="currentColor" strokeWidth="1.2" fill="none" />
+              <circle
+                cx="9"
+                cy="8"
+                r="3.2"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                fill="none"
+              />
+              <circle
+                cx="16"
+                cy="9"
+                r="2.4"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                fill="none"
+              />
+              <path
+                d="M3.5 18c0-2.8 2.5-4.8 5.5-4.8s5.5 2 5.5 4.8"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                fill="none"
+              />
+              <path
+                d="M14 18c0-2.2 1.7-3.8 4-3.8s4 1.6 4 3.8"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                fill="none"
+              />
             </svg>
           </div>
           <div className="metric-delta">
-            <span className="delta-up" style={{ color }}>↑ {fmt(data.customersDelta)}</span>
+            <span className="delta-up" style={{ color }}>
+              ↑ {fmt(data.customersDelta)}
+            </span>
             <span className="delta-text">vs yesterday</span>
           </div>
         </div>
@@ -1539,11 +2298,15 @@ export default function PlatformPage() {
             PREDICTED OUTAGE RISK <span className="metric-sublabel">(24H)</span>
           </div>
           <div className="metric-row">
-            <span className="metric-value-lg" style={{ color }}>{data.outageRisk}%</span>
+            <span className="metric-value-lg" style={{ color }}>
+              {data.outageRisk}%
+            </span>
             <MiniDonut value={data.outageRisk} color={color} />
           </div>
           <div className="metric-delta">
-            <span className="delta-up" style={{ color }}>↑ {data.outageRiskDelta}%</span>
+            <span className="delta-up" style={{ color }}>
+              ↑ {data.outageRiskDelta}%
+            </span>
             <span className="delta-text">vs yesterday</span>
           </div>
         </div>
@@ -1551,14 +2314,23 @@ export default function PlatformPage() {
         <div className="metric-card">
           <div className="metric-label">INFRASTRUCTURE AT RISK</div>
           <div className="metric-row">
-            <span className="metric-value-lg" style={{ color }}>{data.infraAtRisk}</span>
+            <span className="metric-value-lg" style={{ color }}>
+              {data.infraAtRisk}
+            </span>
             <svg viewBox="0 0 24 24" className="metric-icon" aria-hidden>
-              <path d="M12 2 L8 8 L10 8 L8 14 L10 14 L7 22 M12 2 L16 8 L14 8 L16 14 L14 14 L17 22 M9 14 L15 14"
-                stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinejoin="round" />
+              <path
+                d="M12 2 L8 8 L10 8 L8 14 L10 14 L7 22 M12 2 L16 8 L14 8 L16 14 L14 14 L17 22 M9 14 L15 14"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                fill="none"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
           <div className="metric-delta">
-            <span className="delta-up" style={{ color }}>↑ {data.infraDelta}</span>
+            <span className="delta-up" style={{ color }}>
+              ↑ {data.infraDelta}
+            </span>
             <span className="delta-text">vs yesterday</span>
           </div>
         </div>
@@ -1578,14 +2350,20 @@ export default function PlatformPage() {
             {CORRIDORS.map((c) => (
               <li
                 key={c.id}
-                className={`corridor-row ${c.id === activeId ? 'corridor-row-active' : ''}`}
+                className={`corridor-row ${c.id === activeId ? "corridor-row-active" : ""}`}
                 onClick={() => setActiveId(c.id)}
               >
                 <span className="corridor-row-name">
-                  <span className="corridor-dot" style={{ background: levelColor[c.level] }} />
+                  <span
+                    className="corridor-dot"
+                    style={{ background: levelColor[c.level] }}
+                  />
                   {c.name}
                 </span>
-                <span className="corridor-row-index" style={{ color: levelColor[c.level] }}>
+                <span
+                  className="corridor-row-index"
+                  style={{ color: levelColor[c.level] }}
+                >
                   {c.stressIndex}
                 </span>
               </li>
@@ -1613,7 +2391,10 @@ export default function PlatformPage() {
                 <div className="factor-bar-wrap">
                   <div
                     className="factor-bar"
-                    style={{ width: `${f.pct * 2}px`, background: factorColor[f.tone] }}
+                    style={{
+                      width: `${f.pct * 2}px`,
+                      background: factorColor[f.tone],
+                    }}
                   />
                 </div>
                 <span className="factor-pct">{f.pct}%</span>
@@ -1631,8 +2412,19 @@ export default function PlatformPage() {
               <li key={i} className={`alert-row alert-${a.tone}`}>
                 <span className="alert-icon" aria-hidden>
                   <svg viewBox="0 0 24 24">
-                    <path d="M12 3 L22 20 L2 20 Z" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinejoin="round" />
-                    <path d="M12 10 L12 15" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+                    <path
+                      d="M12 3 L22 20 L2 20 Z"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      fill="none"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M12 10 L12 15"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                    />
                     <circle cx="12" cy="17.5" r=".8" fill="currentColor" />
                   </svg>
                 </span>
@@ -1653,52 +2445,130 @@ export default function PlatformPage() {
       {/* SELECTED CORRIDOR PILL (floats above bottom strip) */}
       <div className="selected-pill" aria-hidden={!exploring}>
         <span className="selected-pill-tag">SELECTED</span>
-        <span className="selected-pill-name" style={{ color }}>{data.name}</span>
-        <span className="selected-pill-status">{data.level.toUpperCase()} · {data.stressIndex}</span>
+        <span className="selected-pill-name" style={{ color }}>
+          {data.name}
+        </span>
+        <span className="selected-pill-status">
+          {data.level.toUpperCase()} · {data.stressIndex}
+        </span>
       </div>
 
       {/* BOTTOM STATS STRIP */}
       <div className="bottom-strip" aria-hidden={!exploring}>
         <div className="bottom-stat">
           <div className="bottom-icon">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" stroke="currentColor" strokeWidth="1.2" fill="none" /><circle cx="12" cy="12" r="2.2" stroke="currentColor" strokeWidth="1.2" fill="none" /></svg>
+            <svg viewBox="0 0 24 24">
+              <circle
+                cx="12"
+                cy="12"
+                r="7"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                fill="none"
+              />
+              <circle
+                cx="12"
+                cy="12"
+                r="2.2"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                fill="none"
+              />
+            </svg>
           </div>
           <div className="bottom-content">
             <span className="bottom-label">TOTAL MONITORED ASSETS</span>
             <span className="bottom-value">{fmt(data.bottom.monitored)}</span>
-            <span className="bottom-delta delta-up" style={{ color }}>↑ {data.bottom.monitoredDelta}%</span>
+            <span className="bottom-delta delta-up" style={{ color }}>
+              ↑ {data.bottom.monitoredDelta}%
+            </span>
           </div>
         </div>
 
         <div className="bottom-stat">
           <div className="bottom-icon">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.2" fill="none" /><path d="M9 12 L11 14 L15 10" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <svg viewBox="0 0 24 24">
+              <circle
+                cx="12"
+                cy="12"
+                r="8"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                fill="none"
+              />
+              <path
+                d="M9 12 L11 14 L15 10"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </div>
           <div className="bottom-content">
             <span className="bottom-label">ONLINE ASSETS</span>
             <span className="bottom-value">{fmt(data.bottom.online)}</span>
-            <span className="bottom-delta delta-good">{data.bottom.onlinePct}%</span>
+            <span className="bottom-delta delta-good">
+              {data.bottom.onlinePct}%
+            </span>
           </div>
         </div>
 
         <div className="bottom-stat">
           <div className="bottom-icon">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.2" fill="none" /><path d="M9 9 L15 15 M15 9 L9 15" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>
+            <svg viewBox="0 0 24 24">
+              <circle
+                cx="12"
+                cy="12"
+                r="8"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                fill="none"
+              />
+              <path
+                d="M9 9 L15 15 M15 9 L9 15"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+              />
+            </svg>
           </div>
           <div className="bottom-content">
             <span className="bottom-label">OUT OF SERVICE</span>
-            <span className="bottom-value">{fmt(data.bottom.outOfService)}</span>
-            <span className="bottom-delta delta-bad">↑ {data.bottom.outDelta}%</span>
+            <span className="bottom-value">
+              {fmt(data.bottom.outOfService)}
+            </span>
+            <span className="bottom-delta delta-bad">
+              ↑ {data.bottom.outDelta}%
+            </span>
           </div>
         </div>
 
         <div className="bottom-stat">
           <div className="bottom-icon">
-            <svg viewBox="0 0 24 24"><path d="M6 16 a4 4 0 1 1 1 -7.9 a5 5 0 0 1 9.8 1.4 a3.5 3.5 0 0 1 -1 6.8 Z" stroke="currentColor" strokeWidth="1.2" fill="none" strokeLinejoin="round" /><path d="M9 19 L9 21 M12 19 L12 22 M15 19 L15 21" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /></svg>
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M6 16 a4 4 0 1 1 1 -7.9 a5 5 0 0 1 9.8 1.4 a3.5 3.5 0 0 1 -1 6.8 Z"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                fill="none"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M9 19 L9 21 M12 19 L12 22 M15 19 L15 21"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+              />
+            </svg>
           </div>
           <div className="bottom-content">
             <span className="bottom-label">WEATHER IMPACT</span>
-            <span className="bottom-value" style={{ color: levelColor[data.bottom.weatherTone] }}>
+            <span
+              className="bottom-value"
+              style={{ color: levelColor[data.bottom.weatherTone] }}
+            >
               {data.bottom.weather}
             </span>
             <span className="bottom-delta">Risk</span>
@@ -1707,14 +2577,32 @@ export default function PlatformPage() {
 
         <div className="bottom-stat">
           <div className="bottom-icon">
-            <svg viewBox="0 0 24 24"><path d="M4 16 a8 8 0 0 1 16 0" stroke="currentColor" strokeWidth="1.2" fill="none" /><path d="M12 16 L17 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" /><circle cx="12" cy="16" r="1.4" fill="currentColor" /></svg>
+            <svg viewBox="0 0 24 24">
+              <path
+                d="M4 16 a8 8 0 0 1 16 0"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                fill="none"
+              />
+              <path
+                d="M12 16 L17 9"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+              />
+              <circle cx="12" cy="16" r="1.4" fill="currentColor" />
+            </svg>
           </div>
           <div className="bottom-content">
-            <span className="bottom-label">LOAD FORECAST <span className="bottom-sublabel">(PEAK)</span></span>
+            <span className="bottom-label">
+              LOAD FORECAST <span className="bottom-sublabel">(PEAK)</span>
+            </span>
             <span className="bottom-value">
               {fmt(data.bottom.loadMw)} <span className="bottom-unit">MW</span>
             </span>
-            <span className="bottom-delta delta-up" style={{ color }}>↑ {data.bottom.loadDelta}%</span>
+            <span className="bottom-delta delta-up" style={{ color }}>
+              ↑ {data.bottom.loadDelta}%
+            </span>
           </div>
         </div>
       </div>
@@ -1728,10 +2616,15 @@ export default function PlatformPage() {
         onClick={() => setExploring(false)}
       >
         <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>
-          <path d="M6 6 L18 18 M18 6 L6 18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <path
+            d="M6 6 L18 18 M18 6 L6 18"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
         </svg>
         <span>ESC</span>
       </button>
     </main>
-  )
+  );
 }
