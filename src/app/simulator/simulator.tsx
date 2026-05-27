@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Link from "next/link";
 import "./simulator.css";
 
 /* ─────────────────────────────────────────────
@@ -271,148 +272,158 @@ export default function SimulatorPage() {
     ) / 10;
 
   return (
-    <div className="sim">
-      {/* ── LEFT: SLIDERS ── */}
-      <aside className="sim-left">
-        <div className="sim-head">
-          <div>
-            <p className="sim-eyebrow">Macro Shock Simulator</p>
-            <h1 className="sim-title">
-              Adjust variables.
-              <br />
-              See the impact.
-            </h1>
+    <>
+      <Link href="/" className="sim-home-link">
+        ← Home
+      </Link>
+      <div className="sim">
+        {/* ── LEFT: SLIDERS ── */}
+        <aside className="sim-left">
+          <div className="sim-head">
+            <div>
+              <p className="sim-eyebrow">Macro Shock Simulator</p>
+              <h1 className="sim-title">
+                Adjust variables.
+                <br />
+                See the impact.
+              </h1>
+            </div>
+            {dirty && (
+              <button className="sim-reset" onClick={reset} type="button">
+                ↺ Reset
+              </button>
+            )}
           </div>
-          {dirty && (
-            <button className="sim-reset" onClick={reset} type="button">
-              ↺ Reset
-            </button>
-          )}
-        </div>
 
-        <div className="sim-sliders">
-          {params.map((p) => {
-            const pct = ((p.value - p.min) / (p.max - p.min)) * 100;
-            const basePct = ((p.baseline - p.min) / (p.max - p.min)) * 100;
-            const delta = p.value - p.baseline;
-            return (
-              <div key={p.id} className="sl-row">
-                <div className="sl-meta">
-                  <span className="sl-label">{p.label}</span>
-                  <div className="sl-right">
-                    <span className="sl-val">{fmt(p.value, p)}</span>
-                    {delta !== 0 && (
-                      <span
-                        className={`sl-delta ${delta > 0 ? "sl-up" : "sl-dn"}`}
-                      >
-                        {delta > 0 ? "↑" : "↓"}
-                      </span>
-                    )}
+          <div className="sim-sliders">
+            {params.map((p) => {
+              const pct = ((p.value - p.min) / (p.max - p.min)) * 100;
+              const basePct = ((p.baseline - p.min) / (p.max - p.min)) * 100;
+              const delta = p.value - p.baseline;
+              return (
+                <div key={p.id} className="sl-row">
+                  <div className="sl-meta">
+                    <span className="sl-label">{p.label}</span>
+                    <div className="sl-right">
+                      <span className="sl-val">{fmt(p.value, p)}</span>
+                      {delta !== 0 && (
+                        <span
+                          className={`sl-delta ${delta > 0 ? "sl-up" : "sl-dn"}`}
+                        >
+                          {delta > 0 ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="sl-track">
+                    <div className="sl-fill" style={{ width: `${pct}%` }} />
+                    <div className="sl-base" style={{ left: `${basePct}%` }} />
+                    <input
+                      type="range"
+                      min={p.min}
+                      max={p.max}
+                      step={p.step}
+                      value={p.value}
+                      onChange={(e) =>
+                        onChange(p.id, parseFloat(e.target.value))
+                      }
+                      aria-label={p.label}
+                    />
+                  </div>
+                  <div className="sl-bounds">
+                    <span>{fmt(p.min, p)}</span>
+                    <span>{fmt(p.max, p)}</span>
                   </div>
                 </div>
-                <div className="sl-track">
-                  <div className="sl-fill" style={{ width: `${pct}%` }} />
-                  <div className="sl-base" style={{ left: `${basePct}%` }} />
-                  <input
-                    type="range"
-                    min={p.min}
-                    max={p.max}
-                    step={p.step}
-                    value={p.value}
-                    onChange={(e) => onChange(p.id, parseFloat(e.target.value))}
-                    aria-label={p.label}
-                  />
-                </div>
-                <div className="sl-bounds">
-                  <span>{fmt(p.min, p)}</span>
-                  <span>{fmt(p.max, p)}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
 
-        <p className="sim-note">
-          XGBoost demand model · ARIMA adoption curve · OEB feeder data · 5-year
-          horizon
-        </p>
-      </aside>
+          <p className="sim-note">
+            XGBoost demand model · ARIMA adoption curve · OEB feeder data ·
+            5-year horizon
+          </p>
+        </aside>
 
-      {/* ── RIGHT: RESULTS ── */}
-      <main className="sim-right">
-        {/* KPIs */}
-        <div className="sim-kpis">
-          <div className="kpi">
-            <span
-              className="kpi-val"
-              style={{ color: critical > 0 ? "#FF4D4D" : "#4ADE80" }}
-            >
-              {critical}
-            </span>
-            <span className="kpi-label">Critical feeders</span>
+        {/* ── RIGHT: RESULTS ── */}
+        <main className="sim-right">
+          {/* KPIs */}
+          <div className="sim-kpis">
+            <div className="kpi">
+              <span
+                className="kpi-val"
+                style={{ color: critical > 0 ? "#FF4D4D" : "#4ADE80" }}
+              >
+                {critical}
+              </span>
+              <span className="kpi-label">Critical feeders</span>
+            </div>
+            <div className="kpi-sep" />
+            <div className="kpi">
+              <span
+                className="kpi-val"
+                style={{ color: high > 2 ? "#F4C040" : "inherit" }}
+              >
+                {high}
+              </span>
+              <span className="kpi-label">High load</span>
+            </div>
+            <div className="kpi-sep" />
+            <div className="kpi">
+              <span className="kpi-val">
+                {totalLoad}
+                <span className="kpi-unit">GW</span>
+              </span>
+              <span className="kpi-label">Projected EV load</span>
+            </div>
+            <div className="kpi-sep" />
+            <div className="kpi">
+              <span className="kpi-val">
+                {avgCap}
+                <span className="kpi-unit">%</span>
+              </span>
+              <span className="kpi-label">Avg capacity</span>
+            </div>
           </div>
-          <div className="kpi-sep" />
-          <div className="kpi">
-            <span
-              className="kpi-val"
-              style={{ color: high > 2 ? "#F4C040" : "inherit" }}
-            >
-              {high}
-            </span>
-            <span className="kpi-label">High load</span>
-          </div>
-          <div className="kpi-sep" />
-          <div className="kpi">
-            <span className="kpi-val">
-              {totalLoad}
-              <span className="kpi-unit">GW</span>
-            </span>
-            <span className="kpi-label">Projected EV load</span>
-          </div>
-          <div className="kpi-sep" />
-          <div className="kpi">
-            <span className="kpi-val">
-              {avgCap}
-              <span className="kpi-unit">%</span>
-            </span>
-            <span className="kpi-label">Avg capacity</span>
-          </div>
-        </div>
 
-        {/* Feeder list */}
-        <div className="feeder-list">
-          <div className="feeder-list-head">
-            <span>FEEDER</span>
-            <span>CAPACITY UTILISATION</span>
-            <span>5-YR</span>
-          </div>
-          {results.map(({ feeder, cap }) => {
-            const lv = getLevel(cap);
-            const color = LEVEL_COLOR[lv];
-            return (
-              <div key={feeder.id} className="feeder-row">
-                <div className="feeder-info">
-                  <span className="feeder-dot" style={{ background: color }} />
-                  <div className="feeder-text">
-                    <span className="feeder-name">{feeder.name}</span>
-                    <span className="feeder-region">{feeder.region}</span>
+          {/* Feeder list */}
+          <div className="feeder-list">
+            <div className="feeder-list-head">
+              <span>FEEDER</span>
+              <span>CAPACITY UTILISATION</span>
+              <span>5-YR</span>
+            </div>
+            {results.map(({ feeder, cap }) => {
+              const lv = getLevel(cap);
+              const color = LEVEL_COLOR[lv];
+              return (
+                <div key={feeder.id} className="feeder-row">
+                  <div className="feeder-info">
+                    <span
+                      className="feeder-dot"
+                      style={{ background: color }}
+                    />
+                    <div className="feeder-text">
+                      <span className="feeder-name">{feeder.name}</span>
+                      <span className="feeder-region">{feeder.region}</span>
+                    </div>
                   </div>
+                  <div className="feeder-bar-track">
+                    <div
+                      className="feeder-bar-fill"
+                      style={{ width: `${cap}%`, background: color }}
+                    />
+                    <div className="feeder-threshold" />
+                  </div>
+                  <span className="feeder-cap" style={{ color }}>
+                    {cap}%
+                  </span>
                 </div>
-                <div className="feeder-bar-track">
-                  <div
-                    className="feeder-bar-fill"
-                    style={{ width: `${cap}%`, background: color }}
-                  />
-                  <div className="feeder-threshold" />
-                </div>
-                <span className="feeder-cap" style={{ color }}>
-                  {cap}%
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </main>
-    </div>
+              );
+            })}
+          </div>
+        </main>
+      </div>
+    </>
   );
 }

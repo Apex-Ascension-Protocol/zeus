@@ -1,0 +1,402 @@
+/* ════════════════════════════════════════════════
+   ZEUS · EV TREND CHART — interactive
+   ════════════════════════════════════════════════ */
+
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
+.etc-wrap {
+  --bg: #0a0a0c;
+  --border: rgba(255, 255, 255, 0.08);
+  --ink-1: rgba(255, 255, 255, 0.92);
+  --ink-2: rgba(255, 255, 255, 0.62);
+  --ink-3: rgba(255, 255, 255, 0.36);
+  --ink-4: rgba(255, 255, 255, 0.14);
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+  --font: "Outfit", system-ui, sans-serif;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  background: var(--bg);
+  color: var(--ink-1);
+  font-family: var(--font);
+  padding: 32px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── HEADER ── */
+.etc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.etc-back {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+  text-decoration: none;
+  margin-bottom: 10px;
+  transition: color 0.15s;
+}
+.etc-back:hover {
+  color: var(--ink-1);
+}
+
+.etc-eyebrow {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.3);
+  margin: 0 0 6px;
+}
+
+.etc-title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink-1);
+  margin: 0;
+}
+
+/* View toggle */
+.etc-view-toggle {
+  display: flex;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.etc-toggle-btn {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 14px;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+.etc-toggle-on {
+  color: var(--ink-1) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* ── SCENARIO TABS ── */
+.etc-scenarios {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.etc-sc-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition:
+    color 0.15s,
+    border-color 0.15s,
+    background 0.15s;
+}
+.etc-sc-btn:hover {
+  color: var(--ink-2);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.etc-sc-on {
+  color: var(--ink-1) !important;
+  border-color: var(--sc-bar, rgba(255, 255, 255, 0.2)) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+.etc-sc-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--sc-bar, rgba(255, 255, 255, 0.3));
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.etc-sc-desc {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+  margin: 0 0 0 8px;
+  font-style: italic;
+}
+
+/* ── LEGEND ── */
+.etc-legend {
+  display: flex;
+  gap: 20px;
+}
+
+.etc-leg-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-2);
+  letter-spacing: 0.04em;
+}
+
+.etc-leg-swatch {
+  width: 14px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+
+.etc-leg-line-swatch {
+  height: 3px;
+  border-radius: 1px;
+}
+
+/* ── CHART WRAPPER (for tooltip positioning) ── */
+.etc-chart-wrap {
+  position: relative;
+}
+
+.etc-svg {
+  width: 100%;
+  display: block;
+}
+
+/* ── TOOLTIP ── */
+.etc-tooltip {
+  position: absolute;
+  top: 12px;
+  transform: translateX(-50%);
+  background: rgba(14, 14, 20, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+  pointer-events: none;
+  z-index: 10;
+  min-width: 160px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  animation: etc-tt-in 0.12s var(--ease) both;
+}
+
+.etc-tt-left {
+  transform: translateX(50%);
+}
+
+@keyframes etc-tt-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+.etc-tt-left {
+  animation-name: etc-tt-in-left;
+}
+@keyframes etc-tt-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(50%) translateY(0);
+  }
+}
+
+.etc-tt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.etc-tt-year {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-1);
+  letter-spacing: -0.01em;
+}
+
+.etc-tt-sc {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.etc-tt-divider {
+  height: 1px;
+  background: var(--border);
+  margin-bottom: 8px;
+}
+
+.etc-tt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 0;
+}
+
+.etc-tt-key {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+
+.etc-tt-v {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-1);
+  letter-spacing: -0.01em;
+}
+
+/* ── KPI STRIP ── */
+.etc-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.etc-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 18px;
+  background: var(--bg);
+  transition: background 0.15s;
+}
+.etc-kpi:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.etc-kpi-val {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  transition: color 0.3s;
+}
+
+.etc-kpi-unit {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ink-3);
+  margin-left: 3px;
+}
+
+.etc-kpi-label {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ── TABLE ── */
+.etc-table {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.etc-table-head {
+  display: grid;
+  grid-template-columns: 80px 1fr 1fr 1fr 1fr;
+  padding: 10px 16px;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border);
+}
+
+.etc-table-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 1fr 1fr 1fr;
+  padding: 10px 16px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background 0.1s;
+  cursor: default;
+}
+.etc-table-row:last-child {
+  border-bottom: none;
+}
+.etc-tr-hov {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.etc-tc-year {
+  color: var(--ink-2);
+  letter-spacing: 0.04em;
+}
+
+.etc-tc-delta {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.etc-tc-peak {
+  color: var(--ink-3);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 700px) {
+  .etc-wrap {
+    padding: 20px 16px;
+  }
+  .etc-kpis {
+    grid-template-columns: 1fr 1fr;
+  }
+  .etc-table-head,
+  .etc-table-row {
+    grid-template-columns: 60px 1fr 1fr 1fr;
+  }
+  .etc-tc-peak {
+    display: none;
+  }
+  .etc-table-head span:last-child {
+    display: none;
+  }
+}

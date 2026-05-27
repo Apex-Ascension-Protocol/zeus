@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { label: "How It Works", href: "/#how-it-works" },
   { label: "Data", href: "/#data" },
   { label: "Simulator", href: "/simulator" },
+  { label: "Ev Trend", href: "/ev-trend-chart" },
 ];
 
 export default function Navbar() {
