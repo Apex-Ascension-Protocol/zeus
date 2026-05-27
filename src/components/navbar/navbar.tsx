@@ -6,8 +6,7 @@ import "./navbar.css";
 
 const NAV_LINKS = [
   { label: "Platform", href: "/platform" },
-  { label: "How It Works", href: "/#how-it-works" },
-  { label: "Data", href: "/#data" },
+  { label: "Data", href: "/data-sources" },
   { label: "Simulator", href: "/simulator" },
   { label: "Ev Trend", href: "/ev-trend-chart" },
 ];

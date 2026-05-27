@@ -1,0 +1,258 @@
+/* ════════════════════════════════════════════════
+   ZEUS · DATA SOURCES PAGE
+   Extends sections.css — imports it for tokens
+   ════════════════════════════════════════════════ */
+
+/* ── HERO ── */
+.ds-hero-sec {
+  background: var(--dark);
+  padding: 80px 0 120px;
+}
+
+.ds-back {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.3);
+  text-decoration: none;
+  margin-bottom: 48px;
+  transition: color 0.15s;
+}
+.ds-back:hover {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.ds-h1 {
+  margin-bottom: 0 !important;
+}
+
+.ds-hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 100px;
+  align-items: start;
+}
+
+.ds-intro {
+  font-size: 17px;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.52);
+  margin-bottom: 44px;
+}
+
+.ds-meta-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 28px;
+}
+
+/* ── SOURCES GRID ── */
+.ds-grid-sec {
+  /* inherits sol-sec dark bg + padding */
+}
+
+.ds-sources-grid {
+  grid-template-columns: repeat(4, 1fr) !important;
+}
+
+/* Source card tweaks */
+.ds-card {
+  /* inherits feat-card */
+}
+
+.feat-card-img-link {
+  display: block;
+  text-decoration: none;
+}
+
+/* Org tile replaces the plain title tile */
+.ds-card .feat-tile {
+  max-width: calc(100% - 40px);
+}
+
+.ds-org-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 18px !important;
+}
+
+.ds-org-name {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(10, 10, 10, 0.45);
+  line-height: 1;
+}
+
+.ds-dataset-name {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+  line-height: 1.2;
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* External link badge */
+.ds-ext-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 26px;
+  height: 26px;
+  background: rgba(253, 250, 240, 0.82);
+  backdrop-filter: blur(6px);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.feat-card-img-link:hover .ds-ext-badge {
+  opacity: 1;
+}
+.feat-card-img-link:hover .feat-card-img {
+  transform: translateY(-3px);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35);
+}
+
+/* update cadence in meta */
+.ds-update {
+  font-style: italic;
+}
+
+/* ── PIPELINE ── */
+.ds-pipeline-sec {
+  position: relative;
+  background: linear-gradient(180deg, var(--cream) 0%, #f4efe3 100%);
+  padding: 140px 0 160px;
+  overflow: hidden;
+}
+
+.ds-pipeline-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 860px;
+}
+
+.ds-pipe-h2 {
+  margin-bottom: 64px !important;
+}
+
+/* Steps */
+.ds-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 80px;
+  border-top: 1px solid var(--border);
+}
+
+.ds-step {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 24px;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: start;
+}
+
+.ds-step-n {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--ink-4);
+  padding-top: 3px;
+}
+
+.ds-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ds-step-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin: 0;
+}
+
+.ds-step-text {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-3);
+  margin: 0;
+  max-width: 640px;
+}
+
+.ds-pipe-stats {
+  padding-top: 56px !important;
+  border-top: 1px solid var(--border) !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+}
+
+.ds-pipe-stats .cta-stat {
+  align-items: flex-start;
+  padding: 0 40px 0 0;
+}
+.ds-pipe-stats .cta-stat:first-child {
+  padding-left: 0;
+}
+.ds-pipe-stats .cta-sep {
+  height: 40px;
+  margin: 0 40px 0 0;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1180px) {
+  .ds-sources-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+@media (max-width: 960px) {
+  .ds-hero-grid {
+    grid-template-columns: 1fr;
+    gap: 44px;
+  }
+  .ds-meta-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ds-sources-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .ds-pipe-stats {
+    flex-wrap: wrap;
+    gap: 24px !important;
+  }
+  .ds-pipe-stats .cta-sep {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .ds-sources-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .ds-meta-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ds-step {
+    grid-template-columns: 40px 1fr;
+    gap: 16px;
+  }
+  .ds-dataset-name {
+    font-size: 16px;
+  }
+}
