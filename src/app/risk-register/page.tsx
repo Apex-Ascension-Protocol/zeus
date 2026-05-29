@@ -316,7 +316,7 @@ export default function RiskRegisterPage() {
 
       {/* ── TOP BAR (mirrors /platform) ── */}
       <header className="topbar">
-        <Link href="/platform" className="topbar-back" aria-label="Back">
+        <Link href="/" className="topbar-back" aria-label="Back">
           <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden>
             <path
               d="M15 6 L9 12 L15 18"
@@ -327,7 +327,7 @@ export default function RiskRegisterPage() {
               strokeLinejoin="round"
             />
           </svg>
-          <span>Platform</span>
+          <span>Home</span>
         </Link>
 
         <div className="topbar-logo">
