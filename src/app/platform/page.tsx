@@ -1193,6 +1193,293 @@ const SUBSTATIONS: Substation[] = [
 ];
 
 /* ─────────────────────────────────────────────
+   EV CHARGING STATIONS  (+ grid capacity that feeds them)
+
+   Capacity tiers mirror the Toronto Hydro available-capacity
+   map: each public charging site is fed by a distribution
+   feeder with a published "estimated available capacity".
+   The four feeder bands below are the same ones Toronto Hydro
+   publishes (2,000+ / 1,000–2,000 / 500–999 / 0–499 kVA) and
+   they map cleanly onto our existing severity colour scale.
+   ───────────────────────────────────────────── */
+
+type ChargerTier = "abundant" | "ample" | "limited" | "constrained";
+
+interface EVStation {
+  id: string;
+  name: string;
+  operator: string;
+  /** [lng, lat] */
+  coords: [number, number];
+  /** Region key — matches a corridor endpoint city so we can group usage */
+  region: string;
+  /** Which corridor this site sits inside (for filter visibility) */
+  corridorId: string;
+  level: "L2" | "DCFC";
+  ports: number;
+  /** Mean daily port utilisation — the demand / usage signal */
+  utilizationPct: number;
+  /** Feeder + substation feeding this site (Toronto Hydro style) */
+  feederCode: string;
+  substation: string;
+  /** Feeder estimated available capacity (kVA) — the grid-headroom signal */
+  availableKva: number;
+  tier: ChargerTier;
+}
+
+/**
+ * Real Toronto sites are anchored to the Toronto Hydro capacity map
+ * (e.g. feeder 88-M15 → Richview TS → 2,000+ kVA). Everything outside
+ * Toronto Hydro's licence area is plausible mock data in the same shape.
+ */
+const EV_STATIONS: EVStation[] = [
+  /* ── TORONTO (Toronto Hydro capacity map) ── */
+  {
+    id: "ev-richview",
+    name: "Richview Hub",
+    operator: "Toronto Hydro / FLO",
+    coords: [-79.5519, 43.6786],
+    region: "Toronto",
+    corridorId: "toronto-oshawa",
+    level: "DCFC",
+    ports: 12,
+    utilizationPct: 61,
+    feederCode: "88-M15",
+    substation: "Richview TS",
+    availableKva: 2_400,
+    tier: "abundant",
+  },
+  {
+    id: "ev-downtown",
+    name: "Union Station Lot",
+    operator: "Toronto Hydro / Ivy",
+    coords: [-79.3806, 43.6453],
+    region: "Toronto",
+    corridorId: "toronto-oshawa",
+    level: "DCFC",
+    ports: 18,
+    utilizationPct: 88,
+    feederCode: "12-D04",
+    substation: "Esplanade TS",
+    availableKva: 420,
+    tier: "constrained",
+  },
+  {
+    id: "ev-leaside",
+    name: "Leaside Commons",
+    operator: "Ivy Charging",
+    coords: [-79.3625, 43.704],
+    region: "Toronto",
+    corridorId: "toronto-oshawa",
+    level: "L2",
+    ports: 8,
+    utilizationPct: 54,
+    feederCode: "41-L09",
+    substation: "Leaside TS",
+    availableKva: 1_650,
+    tier: "ample",
+  },
+  {
+    id: "ev-scarborough",
+    name: "Scarborough Town Centre",
+    operator: "Tesla Supercharger",
+    coords: [-79.2576, 43.7764],
+    region: "Toronto",
+    corridorId: "toronto-oshawa",
+    level: "DCFC",
+    ports: 16,
+    utilizationPct: 73,
+    feederCode: "63-M22",
+    substation: "Cherrywood TS",
+    availableKva: 760,
+    tier: "limited",
+  },
+  {
+    id: "ev-etobicoke",
+    name: "Sherway Gardens",
+    operator: "Electrify Canada",
+    coords: [-79.5572, 43.6112],
+    region: "Toronto",
+    corridorId: "toronto-oshawa",
+    level: "DCFC",
+    ports: 10,
+    utilizationPct: 67,
+    feederCode: "88-M07",
+    substation: "Manby TS",
+    availableKva: 1_280,
+    tier: "ample",
+  },
+
+  /* ── OSHAWA / DURHAM ── */
+  {
+    id: "ev-oshawa",
+    name: "Oshawa Centre",
+    operator: "Petro-Canada eV",
+    coords: [-78.8741, 43.8975],
+    region: "Oshawa",
+    corridorId: "toronto-oshawa",
+    level: "DCFC",
+    ports: 8,
+    utilizationPct: 49,
+    feederCode: "OSH-14",
+    substation: "Cherrywood TS",
+    availableKva: 2_150,
+    tier: "abundant",
+  },
+
+  /* ── BRAMPTON / PEEL (EV surge corridor) ── */
+  {
+    id: "ev-brampton",
+    name: "Bramalea City Centre",
+    operator: "Alectra / FLO",
+    coords: [-79.7261, 43.7185],
+    region: "Brampton",
+    corridorId: "brampton-toronto",
+    level: "DCFC",
+    ports: 20,
+    utilizationPct: 91,
+    feederCode: "BRA-07",
+    substation: "Claireville TS",
+    availableKva: 310,
+    tier: "constrained",
+  },
+  {
+    id: "ev-brampton-n",
+    name: "Mount Pleasant GO",
+    operator: "Ivy Charging",
+    coords: [-79.8174, 43.7011],
+    region: "Brampton",
+    corridorId: "brampton-toronto",
+    level: "L2",
+    ports: 14,
+    utilizationPct: 82,
+    feederCode: "BRA-11",
+    substation: "Claireville TS",
+    availableKva: 540,
+    tier: "limited",
+  },
+
+  /* ── HAMILTON ── */
+  {
+    id: "ev-hamilton",
+    name: "Limeridge Mall",
+    operator: "Alectra eCharge",
+    coords: [-79.8702, 43.2244],
+    region: "Hamilton",
+    corridorId: "toronto-hamilton",
+    level: "DCFC",
+    ports: 10,
+    utilizationPct: 64,
+    feederCode: "HAM-22",
+    substation: "Burlington TS",
+    availableKva: 880,
+    tier: "limited",
+  },
+
+  /* ── NIAGARA ── */
+  {
+    id: "ev-niagara",
+    name: "Niagara Outlets",
+    operator: "Tesla Supercharger",
+    coords: [-79.1402, 43.1668],
+    region: "Niagara Falls",
+    corridorId: "niagara-stcatharines",
+    level: "DCFC",
+    ports: 24,
+    utilizationPct: 78,
+    feederCode: "NFL-05",
+    substation: "Allanburg TS",
+    availableKva: 1_420,
+    tier: "ample",
+  },
+
+  /* ── KITCHENER / WATERLOO ── */
+  {
+    id: "ev-kitchener",
+    name: "Sportsworld Crossing",
+    operator: "Ivy Charging",
+    coords: [-80.4255, 43.4045],
+    region: "Kitchener",
+    corridorId: "kitchener-toronto",
+    level: "DCFC",
+    ports: 12,
+    utilizationPct: 70,
+    feederCode: "KIT-18",
+    substation: "Detweiler TS",
+    availableKva: 690,
+    tier: "limited",
+  },
+
+  /* ── OTTAWA ── */
+  {
+    id: "ev-ottawa",
+    name: "Lansdowne Park",
+    operator: "Hydro Ottawa / FLO",
+    coords: [-75.6829, 45.398],
+    region: "Ottawa",
+    corridorId: "ottawa-kingston",
+    level: "DCFC",
+    ports: 14,
+    utilizationPct: 58,
+    feederCode: "OTT-31",
+    substation: "Hawthorne TS",
+    availableKva: 2_600,
+    tier: "abundant",
+  },
+
+  /* ── WINDSOR ── */
+  {
+    id: "ev-windsor",
+    name: "Devonshire Mall",
+    operator: "EnWin / Electrify",
+    coords: [-83.0186, 42.2748],
+    region: "Windsor",
+    corridorId: "windsor-london",
+    level: "DCFC",
+    ports: 10,
+    utilizationPct: 52,
+    feederCode: "WIN-09",
+    substation: "Tecumseh TS",
+    availableKva: 1_180,
+    tier: "ample",
+  },
+
+  /* ── LONDON ── */
+  {
+    id: "ev-london",
+    name: "Masonville Place",
+    operator: "London Hydro / Ivy",
+    coords: [-81.2787, 43.0186],
+    region: "London",
+    corridorId: "windsor-london",
+    level: "L2",
+    ports: 9,
+    utilizationPct: 46,
+    feederCode: "LON-27",
+    substation: "Wonderland TS",
+    availableKva: 2_050,
+    tier: "abundant",
+  },
+
+  /* ── BARRIE ── */
+  {
+    id: "ev-barrie",
+    name: "Georgian Mall",
+    operator: "Alectra / Tesla",
+    coords: [-79.7064, 44.4055],
+    region: "Barrie",
+    corridorId: "barrie-toronto",
+    level: "DCFC",
+    ports: 8,
+    utilizationPct: 60,
+    feederCode: "BAR-12",
+    substation: "Essa TS",
+    availableKva: 940,
+    tier: "limited",
+  },
+];
+
+/* ─────────────────────────────────────────────
    HELPERS
    ───────────────────────────────────────────── */
 
@@ -1212,6 +1499,153 @@ const factorColor: Record<FactorTone, string> = {
   low: "#4ADE80",
   mute: "rgba(255,255,255,.22)",
 };
+
+/* ── EV capacity tiers (Toronto Hydro feeder bands) ── */
+const tierColor: Record<ChargerTier, string> = {
+  abundant: "#4ADE80", // 2,000+ kVA
+  ample: "#F4C040", // 1,000–2,000 kVA
+  limited: "#FF8A3D", // 500–999 kVA
+  constrained: "#FF4D4D", // 0–499 kVA
+};
+
+const tierLabel: Record<ChargerTier, string> = {
+  abundant: "2,000+ kVA",
+  ample: "1,000–2,000 kVA",
+  limited: "500–999 kVA",
+  constrained: "0–499 kVA",
+};
+
+const tierTone: Record<ChargerTier, FactorTone> = {
+  abundant: "low",
+  ample: "moderate",
+  limited: "high",
+  constrained: "critical",
+};
+
+/** Substation headroom (kVA) derived from rated capacity + current load. */
+const subAvailableKva = (s: Substation) =>
+  Math.round(s.capacityMva * 1000 * (1 - s.loadPct / 100));
+
+/**
+ * Summarised EV-growth read for a corridor — derived live from the
+ * stations + substations already in the dataset, so it needs no
+ * hand-authored copy per corridor. This is the panel that replaces
+ * the old per-corridor "critical alerts" feed: instead of telling an
+ * operator what just broke, it tells a *company* where EV demand and
+ * grid headroom line up best for expansion.
+ */
+interface EvOutlook {
+  verdict: string;
+  verdictTone: FactorTone;
+  summary: string;
+  signals: { label: string; value: string; tone: FactorTone }[];
+  sites: number;
+}
+
+function getEvOutlook(c: Corridor): EvOutlook {
+  const cities = [c.from.name, c.to.name];
+  const stations = EV_STATIONS.filter(
+    (s) => s.corridorId === c.id || cities.includes(s.region),
+  );
+  const subs = SUBSTATIONS.filter((s) => s.corridorId === c.id);
+
+  const ports = stations.reduce((a, s) => a + s.ports, 0);
+  const avgUtil = stations.length
+    ? Math.round(
+        stations.reduce((a, s) => a + s.utilizationPct, 0) / stations.length,
+      )
+    : 0;
+  const headroomKva = subs.reduce((a, s) => a + subAvailableKva(s), 0);
+  const headroomMw = headroomKva / 1000;
+  /* customer growth stands in for adoption momentum */
+  const momentum = c.customersDelta;
+
+  /* tones */
+  const utilTone: FactorTone =
+    avgUtil >= 85
+      ? "critical"
+      : avgUtil >= 70
+        ? "high"
+        : avgUtil >= 50
+          ? "moderate"
+          : "low";
+  const headroomTone: FactorTone =
+    headroomMw >= 12
+      ? "low"
+      : headroomMw >= 6
+        ? "moderate"
+        : headroomMw >= 2
+          ? "high"
+          : "critical";
+  const momentumTone: FactorTone =
+    momentum >= 14_000
+      ? "critical"
+      : momentum >= 8_000
+        ? "high"
+        : momentum >= 4_000
+          ? "moderate"
+          : "low";
+
+  /* verdict: demand proven × grid able to absorb it */
+  const hotDemand = avgUtil >= 70;
+  const roomToGrow = headroomMw >= 6;
+  let verdict: string;
+  let verdictTone: FactorTone;
+  let summary: string;
+  if (hotDemand && roomToGrow) {
+    verdict = "Expansion-ready";
+    verdictTone = "low";
+    summary =
+      "Proven charging demand with feeder headroom to absorb new sites — the strongest near-term build case.";
+  } else if (hotDemand && !roomToGrow) {
+    verdict = "Demand-led, grid-tight";
+    verdictTone = "high";
+    summary =
+      "Usage is high but feeders are near their limit — new capacity needs grid upgrades or off-peak load shaping.";
+  } else if (!hotDemand && roomToGrow) {
+    verdict = "Early-stage upside";
+    verdictTone = "moderate";
+    summary =
+      "Ample grid headroom ahead of demand — a low-risk place to plant sites before utilisation climbs.";
+  } else {
+    verdict = "Watch & hold";
+    verdictTone = "moderate";
+    summary =
+      "Moderate demand against limited headroom — monitor utilisation before committing new ports.";
+  }
+
+  return {
+    verdict,
+    verdictTone,
+    summary,
+    sites: stations.length,
+    signals: [
+      {
+        label: "Charger Utilisation",
+        value: `${avgUtil}%`,
+        tone: utilTone,
+      },
+      {
+        label: "Feeder Headroom",
+        value:
+          headroomMw >= 1
+            ? `${headroomMw.toFixed(1)} MW`
+            : `${headroomKva.toLocaleString("en-US")} kVA`,
+        tone: headroomTone,
+      },
+      {
+        label: "Public Ports",
+        value: fmt(ports),
+        tone: ports >= 40 ? "low" : ports >= 20 ? "moderate" : "high",
+      },
+      {
+        label: "Adoption Momentum",
+        value: `↑ ${fmt(momentum)}/yr`,
+        tone: momentumTone,
+      },
+    ],
+  };
+}
 
 /* Centroid of all corridor endpoints — used as the initial map view */
 const ONTARIO_CENTER: [number, number] = [-79.5, 44.6];
@@ -1343,11 +1777,13 @@ function GridMap({
   activeId,
   onSelect,
   levelFilter,
+  showEv,
   onReady,
 }: {
   activeId: string;
   onSelect: (id: string) => void;
   levelFilter: Set<Level>;
+  showEv: boolean;
   onReady?: (zoomIn: () => void, zoomOut: () => void) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1359,10 +1795,13 @@ function GridMap({
   >([]);
   /** Substation markers tracked with parent-corridor level for filter visibility. */
   const subMarkersRef = useRef<{ marker: Marker; level: Level }[]>([]);
+  /** EV-station markers tracked with parent-corridor level + the EV-layer toggle. */
+  const evMarkersRef = useRef<{ marker: Marker; level: Level }[]>([]);
   const popupRef = useRef<Popup | null>(null);
   const hoveredIdRef = useRef<string | null>(null);
   const onSelectRef = useRef(onSelect);
   const levelFilterRef = useRef(levelFilter);
+  const showEvRef = useRef(showEv);
   const animRafRef = useRef<number | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -1373,6 +1812,9 @@ function GridMap({
   useEffect(() => {
     levelFilterRef.current = levelFilter;
   }, [levelFilter]);
+  useEffect(() => {
+    showEvRef.current = showEv;
+  }, [showEv]);
 
   /* Initialize map once */
   useEffect(() => {
@@ -1824,6 +2266,124 @@ function GridMap({
         }
       });
 
+      /* ── EV CHARGING STATION MARKERS (capacity-tiered, clickable) ── */
+      EV_STATIONS.forEach((stn) => {
+        const tColor = tierColor[stn.tier];
+        const el = document.createElement("div");
+        el.className = `ev-marker ev-tier-${stn.tier} ev-lvl-${stn.level.toLowerCase()}`;
+        el.setAttribute("role", "button");
+        el.setAttribute("tabindex", "0");
+        el.setAttribute("aria-label", `EV charging site ${stn.name}`);
+        el.style.setProperty("--ev-color", tColor);
+        /* DCFC = filled bolt pin, L2 = hollow — quick visual rank */
+        el.innerHTML = `
+          <span class="ev-marker-pin">
+            <svg viewBox="0 0 24 24" aria-hidden>
+              <path class="ev-bolt" d="M13 2 L5 13 L11 13 L10 22 L19 10 L13 10 Z" />
+            </svg>
+          </span>
+          <span class="ev-marker-pulse"></span>
+        `;
+
+        const openPopup = () => {
+          popupRef.current?.remove();
+          const html = `
+            <div class="ev-popup">
+              <div class="ev-popup-head">
+                <span class="ev-popup-bolt" style="color:${tColor}">
+                  <svg viewBox="0 0 24 24"><path d="M13 2 L5 13 L11 13 L10 22 L19 10 L13 10 Z" fill="currentColor"/></svg>
+                </span>
+                <span class="ev-popup-name">${stn.name}</span>
+                <span class="ev-popup-lvl">${stn.level}</span>
+              </div>
+              <div class="ev-popup-op">${stn.operator}</div>
+              <div class="ev-popup-grid">
+                <div class="ev-popup-cell">
+                  <span class="ev-popup-cell-lbl">PORTS</span>
+                  <span class="ev-popup-cell-val">${stn.ports}</span>
+                </div>
+                <div class="ev-popup-cell">
+                  <span class="ev-popup-cell-lbl">UTILISATION</span>
+                  <span class="ev-popup-cell-val">${stn.utilizationPct}%</span>
+                </div>
+                <div class="ev-popup-cell">
+                  <span class="ev-popup-cell-lbl">FEEDER</span>
+                  <span class="ev-popup-cell-val">${stn.feederCode}</span>
+                </div>
+                <div class="ev-popup-cell">
+                  <span class="ev-popup-cell-lbl">SUBSTATION</span>
+                  <span class="ev-popup-cell-val">${stn.substation}</span>
+                </div>
+              </div>
+              <div class="ev-popup-cap">
+                <div class="ev-popup-cap-row">
+                  <span class="ev-popup-cap-lbl">FEEDER AVAILABLE CAPACITY</span>
+                  <span class="ev-popup-cap-val" style="color:${tColor}">${stn.availableKva.toLocaleString("en-US")} kVA</span>
+                </div>
+                <div class="ev-popup-cap-bar">
+                  <div class="ev-popup-cap-fill" style="width:${Math.min(100, (stn.availableKva / 2500) * 100)}%;background:${tColor}"></div>
+                </div>
+                <span class="ev-popup-tier" style="color:${tColor};border-color:${tColor}">${tierLabel[stn.tier].toUpperCase()}</span>
+              </div>
+              <div class="ev-popup-foot">
+                <button type="button" class="ev-popup-cta" data-corridor-id="${stn.corridorId}">
+                  View corridor →
+                </button>
+              </div>
+            </div>
+          `;
+          const popup = new maplibregl.Popup({
+            offset: 16,
+            closeButton: true,
+            closeOnClick: true,
+            className: "ev-popup-wrap",
+            maxWidth: "280px",
+          })
+            .setLngLat(stn.coords)
+            .setHTML(html)
+            .addTo(map);
+
+          setTimeout(() => {
+            const btn = document.querySelector(
+              `.ev-popup-cta[data-corridor-id="${stn.corridorId}"]`,
+            ) as HTMLElement | null;
+            btn?.addEventListener("click", () => {
+              onSelectRef.current(stn.corridorId);
+              popup.remove();
+            });
+          }, 0);
+
+          popupRef.current = popup;
+        };
+
+        el.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          openPopup();
+        });
+        el.addEventListener("keydown", (ev) => {
+          if (
+            (ev as KeyboardEvent).key === "Enter" ||
+            (ev as KeyboardEvent).key === " "
+          ) {
+            ev.preventDefault();
+            openPopup();
+          }
+        });
+
+        const marker = new maplibregl.Marker({ element: el, anchor: "center" })
+          .setLngLat(stn.coords)
+          .addTo(map);
+        markersRef.current.push(marker);
+
+        const parent = CORRIDORS.find((c) => c.id === stn.corridorId);
+        evMarkersRef.current.push({
+          marker,
+          level: parent ? parent.level : "moderate",
+        });
+        /* respect the EV-layer toggle from the very first render */
+        if (!showEvRef.current) el.style.display = "none";
+      });
+
       setReady(true);
       onReady?.(
         () => mapRef.current?.zoomIn({ duration: 280 }),
@@ -1841,6 +2401,7 @@ function GridMap({
       markersRef.current = [];
       cityMarkersRef.current = [];
       subMarkersRef.current = [];
+      evMarkersRef.current = [];
       map.remove();
       mapRef.current = null;
     };
@@ -1922,16 +2483,548 @@ function GridMap({
       const visible = levelFilter.has(level);
       marker.getElement().style.display = visible ? "" : "none";
     });
+    /* EV markers obey BOTH the level filter and the EV-layer toggle */
+    evMarkersRef.current.forEach(({ marker, level }) => {
+      const visible = levelFilter.has(level) && showEv;
+      marker.getElement().style.display = visible ? "" : "none";
+    });
 
     /* If an open popup belongs to a hidden corridor, dismiss it */
     if (popupRef.current && !visibleLevels.length) {
       popupRef.current.remove();
       popupRef.current = null;
     }
-  }, [levelFilter, ready]);
+  }, [levelFilter, showEv, ready]);
 
   return (
     <div ref={containerRef} className="gridmap" aria-label="Ontario grid map" />
+  );
+}
+
+/* ─────────────────────────────────────────────
+   FORECAST SIMULATOR  (5-year stress projection)
+
+   A transparent, deterministic model: the corridor's
+   current stress index is pushed forward month-by-month
+   under four adjustable drivers. EV adoption is the
+   dominant upward force; grid investment is the main
+   mitigation. Everything recomputes live as the operator
+   drags a slider or scrubs the 60-month timeline.
+   ───────────────────────────────────────────── */
+
+interface SimVars {
+  evAdoption: number; // annual EV fleet growth, 0.05–0.50
+  chargingLoad: number; // fast-charge (DCFC) intensity, 0–1
+  gridInvestment: number; // capital upgrade pace (mitigation), 0–1
+  weatherSeverity: number; // climate / extreme-weather pressure, 0–1
+}
+
+const SIM_DEFAULTS: SimVars = {
+  evAdoption: 0.22,
+  chargingLoad: 0.45,
+  gridInvestment: 0.3,
+  weatherSeverity: 0.4,
+};
+
+const HORIZON_MONTHS = 60; // 5 years
+const SIM_BASE_DATE = new Date(2025, 6, 1); // Jul 2025 — matches lastUpdated
+
+/** Map a projected stress index to a severity level for colouring. */
+function levelFor(stress: number): Level {
+  return stress >= 80
+    ? "critical"
+    : stress >= 65
+      ? "high"
+      : stress >= 45
+        ? "moderate"
+        : "low";
+}
+
+/** Deterministic projection for a corridor at a given month under given vars. */
+function projectAt(c: Corridor, v: SimVars, month: number) {
+  const yrs = month / 12;
+  /* annual change in index points — can be negative if investment wins */
+  const annualDelta =
+    v.evAdoption * 34 + // dominant driver
+    v.chargingLoad * 11 + // peak intensity
+    v.weatherSeverity * 8 +
+    4 - // base demand creep
+    v.gridInvestment * 27; // mitigation
+  /* mild early acceleration, capped at 100 */
+  const curve = 1 + 0.06 * yrs;
+  const rawStress = c.stressIndex + annualDelta * yrs * curve;
+  const stress = Math.max(2, Math.min(100, rawStress));
+
+  /* affected customers grow with adoption + extra exposure once stress is high */
+  const custGrowth = v.evAdoption * 0.9 + 0.02;
+  const base = c.customers * (1 + custGrowth * yrs);
+  const exposure = 1 + Math.max(0, (stress - 70) / 100) * 0.7;
+  const customers = Math.round(base * exposure);
+
+  const outage = Math.max(
+    0,
+    Math.min(95, c.outageRisk + (stress - c.stressIndex) * 0.45),
+  );
+  const infra = Math.round(
+    c.infraAtRisk * (1 + Math.max(0, (stress - c.stressIndex) / 100) * 1.4),
+  );
+
+  return { stress, customers, outage, infra };
+}
+
+/** Factor mix — % each driver contributes to the projected pressure. */
+function factorMix(
+  v: SimVars,
+): { label: string; pct: number; tone: FactorTone }[] {
+  const ev = v.evAdoption * 34;
+  const charge = v.chargingLoad * 11;
+  const weather = v.weatherSeverity * 8;
+  const base = 4;
+  const total = ev + charge + weather + base || 1;
+  const raw = [
+    { label: "EV Charging Load", v: ev, tone: "critical" as FactorTone },
+    { label: "Fast-Charge Peaks", v: charge, tone: "high" as FactorTone },
+    { label: "Weather Exposure", v: weather, tone: "moderate" as FactorTone },
+    { label: "Base Demand", v: base, tone: "low" as FactorTone },
+  ];
+  return raw.map((r) => ({
+    label: r.label,
+    pct: Math.round((r.v / total) * 100),
+    tone: r.tone,
+  }));
+}
+
+const monthToLabel = (m: number) => {
+  const d = new Date(
+    SIM_BASE_DATE.getFullYear(),
+    SIM_BASE_DATE.getMonth() + m,
+    1,
+  );
+  return d.toLocaleString("en-US", { month: "short", year: "numeric" });
+};
+
+/* ── Projection chart (stress index across 60 months, with band + marker) ── */
+function ForecastChart({
+  c,
+  vars,
+  month,
+}: {
+  c: Corridor;
+  vars: SimVars;
+  month: number;
+}) {
+  const w = 480,
+    h = 210;
+  const padL = 30,
+    padR = 16,
+    padT = 16,
+    padB = 28;
+  const innerW = w - padL - padR;
+  const innerH = h - padT - padB;
+
+  const toY = (s: number) => padT + innerH - (s / 100) * innerH;
+  const toX = (m: number) => padL + (m / HORIZON_MONTHS) * innerW;
+
+  const pts = Array.from({ length: HORIZON_MONTHS + 1 }, (_, m) => {
+    const { stress } = projectAt(c, vars, m);
+    return { m, x: toX(m), y: toY(stress), stress };
+  });
+
+  /* uncertainty band widens with time (±, up to ~12 index pts) */
+  const band = pts.map((p) => {
+    const spread = (p.m / HORIZON_MONTHS) * 12;
+    return {
+      x: p.x,
+      up: toY(Math.min(100, p.stress + spread)),
+      dn: toY(Math.max(0, p.stress - spread)),
+    };
+  });
+  const bandPath =
+    band.map((p, i) => `${i ? "L" : "M"} ${p.x} ${p.up}`).join(" ") +
+    " " +
+    band
+      .slice()
+      .reverse()
+      .map((p) => `L ${p.x} ${p.dn}`)
+      .join(" ") +
+    " Z";
+
+  const linePath = pts.map((p, i) => `${i ? "L" : "M"} ${p.x} ${p.y}`).join(" ");
+  const sel = pts[month];
+  const gradId = `simgrad-${c.id}`;
+  const startCol = levelColor[levelFor(pts[0].stress)];
+  const endCol = levelColor[levelFor(pts[pts.length - 1].stress)];
+  const baseY = toY(c.stressIndex);
+
+  const xTicks = [
+    { m: 0, label: "Now" },
+    { m: 18, label: "18 mo" },
+    { m: 36, label: "3 yr" },
+    { m: 60, label: "5 yr" },
+  ];
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="sim-chart">
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor={startCol} />
+          <stop offset="100%" stopColor={endCol} />
+        </linearGradient>
+      </defs>
+
+      {[0, 25, 50, 75, 100].map((g) => (
+        <g key={g}>
+          <line
+            x1={padL}
+            y1={toY(g)}
+            x2={w - padR}
+            y2={toY(g)}
+            className="sim-chart-grid"
+          />
+          <text x={padL - 5} y={toY(g) + 3} className="sim-chart-axis">
+            {g}
+          </text>
+        </g>
+      ))}
+
+      {/* today reference line */}
+      <line
+        x1={padL}
+        y1={baseY}
+        x2={w - padR}
+        y2={baseY}
+        className="sim-chart-baseline"
+      />
+      <text x={w - padR} y={baseY - 4} className="sim-chart-baselabel">
+        today
+      </text>
+
+      {/* uncertainty band + projection line */}
+      <path d={bandPath} className="sim-chart-band" fill={`url(#${gradId})`} />
+      <path
+        d={linePath}
+        className="sim-chart-line"
+        stroke={`url(#${gradId})`}
+      />
+
+      {/* selected-month marker */}
+      <line
+        x1={sel.x}
+        y1={padT}
+        x2={sel.x}
+        y2={padT + innerH}
+        className="sim-chart-marker"
+      />
+      <circle
+        cx={sel.x}
+        cy={sel.y}
+        r="3.4"
+        fill={levelColor[levelFor(sel.stress)]}
+        stroke="#0a0a0c"
+        strokeWidth="1.5"
+      />
+
+      {xTicks.map((t) => (
+        <text key={t.m} x={toX(t.m)} y={h - 6} className="sim-chart-axis-x">
+          {t.label}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+/* ── A labelled range control ── */
+function SimSlider({
+  label,
+  value,
+  min,
+  max,
+  step,
+  display,
+  hint,
+  accent,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  display: string;
+  hint: string;
+  accent: string;
+  onChange: (v: number) => void;
+}) {
+  const pct = ((value - min) / (max - min)) * 100;
+  return (
+    <div className="sim-slider">
+      <div className="sim-slider-top">
+        <span className="sim-slider-label">{label}</span>
+        <span className="sim-slider-val" style={{ color: accent }}>
+          {display}
+        </span>
+      </div>
+      <input
+        type="range"
+        className="sim-range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        style={
+          {
+            ["--fill"]: `${pct}%`,
+            ["--accent"]: accent,
+          } as Record<string, string>
+        }
+        aria-label={label}
+      />
+      <span className="sim-slider-hint">{hint}</span>
+    </div>
+  );
+}
+
+function ForecastSimulator({
+  corridor,
+  open,
+  onClose,
+}: {
+  corridor: Corridor;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [vars, setVars] = useState<SimVars>(SIM_DEFAULTS);
+  const [month, setMonth] = useState(18);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  const set = useCallback(
+    (k: keyof SimVars) => (val: number) =>
+      setVars((p) => ({ ...p, [k]: val })),
+    [],
+  );
+
+  const proj = projectAt(corridor, vars, month);
+  const mix = factorMix(vars);
+  const lvl = levelFor(proj.stress);
+  const col = levelColor[lvl];
+  const deltaPct = Math.round(
+    ((proj.stress - corridor.stressIndex) / corridor.stressIndex) * 100,
+  );
+  const custDelta = proj.customers - corridor.customers;
+  const rising = proj.stress >= corridor.stressIndex;
+  const arrow = rising ? "↑" : "↓";
+
+  return (
+    <div
+      className={`sim-overlay ${open ? "is-open" : ""}`}
+      aria-hidden={!open}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Forecast simulator"
+    >
+      <div className="sim-backdrop" onClick={onClose} />
+
+      <div className="sim-panel">
+        {/* header */}
+        <div className="sim-header">
+          <div className="sim-header-l">
+            <span className="sim-eyebrow">5-YEAR STRESS FORECAST</span>
+            <h2 className="sim-title">
+              {corridor.name}
+              <span
+                className="sim-title-level"
+                style={{ color: col, borderColor: col }}
+              >
+                {lvl.toUpperCase()}
+              </span>
+            </h2>
+          </div>
+          <button
+            type="button"
+            className="sim-close"
+            aria-label="Close simulator"
+            onClick={onClose}
+          >
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden>
+              <path
+                d="M6 6 L18 18 M18 6 L6 18"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* body */}
+        <div className="sim-body">
+          {/* CONTROLS */}
+          <div className="sim-col sim-col-controls">
+            <span className="sim-col-title">DRIVERS</span>
+            <SimSlider
+              label="EV Adoption"
+              value={vars.evAdoption}
+              min={0.05}
+              max={0.5}
+              step={0.01}
+              display={`${Math.round(vars.evAdoption * 100)}%/yr`}
+              hint="Annual EV fleet growth"
+              accent="#FF4D4D"
+              onChange={set("evAdoption")}
+            />
+            <SimSlider
+              label="Fast-Charge Load"
+              value={vars.chargingLoad}
+              min={0}
+              max={1}
+              step={0.01}
+              display={`${Math.round(vars.chargingLoad * 100)}%`}
+              hint="Share of DCFC / peak intensity"
+              accent="#FF8A3D"
+              onChange={set("chargingLoad")}
+            />
+            <SimSlider
+              label="Grid Investment"
+              value={vars.gridInvestment}
+              min={0}
+              max={1}
+              step={0.01}
+              display={`${Math.round(vars.gridInvestment * 100)}%`}
+              hint="Capital upgrade pace (mitigation)"
+              accent="#4ADE80"
+              onChange={set("gridInvestment")}
+            />
+            <SimSlider
+              label="Weather Severity"
+              value={vars.weatherSeverity}
+              min={0}
+              max={1}
+              step={0.01}
+              display={`${Math.round(vars.weatherSeverity * 100)}%`}
+              hint="Climate / extreme-weather pressure"
+              accent="#F4C040"
+              onChange={set("weatherSeverity")}
+            />
+            <button
+              type="button"
+              className="sim-reset"
+              onClick={() => setVars(SIM_DEFAULTS)}
+            >
+              Reset to baseline
+            </button>
+          </div>
+
+          {/* CHART */}
+          <div className="sim-col sim-col-chart">
+            <div className="sim-chart-readout">
+              <span className="sim-chart-readout-lbl">
+                PROJECTED STRESS INDEX
+              </span>
+              <span className="sim-chart-readout-when">{monthToLabel(month)}</span>
+            </div>
+            <ForecastChart c={corridor} vars={vars} month={month} />
+          </div>
+
+          {/* OUTPUTS */}
+          <div className="sim-col sim-col-outputs">
+            <span className="sim-col-title">AT {monthToLabel(month)}</span>
+
+            <div className="sim-out-card">
+              <span className="sim-out-lbl">STRESS INDEX</span>
+              <span className="sim-out-big" style={{ color: col }}>
+                {Math.round(proj.stress)}
+              </span>
+              <span className="sim-out-delta" style={{ color: col }}>
+                {arrow} {Math.abs(deltaPct)}% vs today ({corridor.stressIndex})
+              </span>
+            </div>
+
+            <div className="sim-out-card">
+              <span className="sim-out-lbl">AFFECTED CUSTOMERS</span>
+              <span className="sim-out-mid">{fmt(proj.customers)}</span>
+              <span className="sim-out-delta" style={{ color: col }}>
+                {custDelta >= 0 ? "↑" : "↓"} {fmt(Math.abs(custDelta))} vs today
+              </span>
+            </div>
+
+            <div className="sim-out-mini-row">
+              <div className="sim-out-mini">
+                <span className="sim-out-lbl">PEAK OUTAGE RISK</span>
+                <span className="sim-out-mid" style={{ color: col }}>
+                  {Math.round(proj.outage)}%
+                </span>
+              </div>
+              <div className="sim-out-mini">
+                <span className="sim-out-lbl">INFRA AT RISK</span>
+                <span className="sim-out-mid">{fmt(proj.infra)}</span>
+              </div>
+            </div>
+
+            <div className="sim-mix">
+              <span className="sim-out-lbl">% OF STRESS INDEX BY DRIVER</span>
+              <ul className="sim-mix-list">
+                {mix.map((f) => (
+                  <li key={f.label} className="sim-mix-row">
+                    <span className="sim-mix-label">{f.label}</span>
+                    <div className="sim-mix-bar-wrap">
+                      <div
+                        className="sim-mix-bar"
+                        style={{
+                          width: `${f.pct}%`,
+                          background: factorColor[f.tone],
+                        }}
+                      />
+                    </div>
+                    <span className="sim-mix-pct">{f.pct}%</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* TIME SCRUBBER */}
+        <div className="sim-time">
+          <div className="sim-time-head">
+            <span className="sim-time-lbl">TIMELINE</span>
+            <span className="sim-time-readout" style={{ color: col }}>
+              Month {month} · {monthToLabel(month)}
+            </span>
+          </div>
+          <input
+            type="range"
+            className="sim-time-range"
+            min={0}
+            max={HORIZON_MONTHS}
+            step={1}
+            value={month}
+            onChange={(e) => setMonth(parseInt(e.target.value, 10))}
+            style={
+              {
+                ["--fill"]: `${(month / HORIZON_MONTHS) * 100}%`,
+                ["--accent"]: col,
+              } as Record<string, string>
+            }
+            aria-label="Forecast month"
+          />
+          <div className="sim-time-ticks">
+            <span>Now</span>
+            <span>18 mo</span>
+            <span>3 yr</span>
+            <span>5 yr</span>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1945,8 +3038,11 @@ export default function PlatformPage() {
   const [levelFilter, setLevelFilter] = useState<Set<Level>>(
     () => new Set<Level>(["critical", "high", "moderate", "low"]),
   );
+  const [showEv, setShowEv] = useState(true);
+  const [simOpen, setSimOpen] = useState(false);
   const data = CORRIDORS.find((c) => c.id === activeId)!;
   const color = levelColor[data.level];
+  const evOutlook = getEvOutlook(data);
 
   /** Toggle one severity in/out of the filter set */
   const toggleLevel = useCallback((lvl: Level) => {
@@ -1998,6 +3094,7 @@ export default function PlatformPage() {
           activeId={activeId}
           onSelect={handleSelect}
           levelFilter={levelFilter}
+          showEv={showEv}
           onReady={handleMapReady}
         />
         <div className="map-vignette" aria-hidden />
@@ -2139,6 +3236,26 @@ export default function PlatformPage() {
             </button>
           );
         })}
+
+        <span className="filter-row-sep" aria-hidden />
+
+        <button
+          type="button"
+          className={`filter-chip filter-chip-ev ${showEv ? "is-active" : ""}`}
+          onClick={() => setShowEv((v) => !v)}
+          aria-pressed={showEv}
+        >
+          <span className="filter-chip-bolt" aria-hidden>
+            <svg viewBox="0 0 24 24" width="11" height="11">
+              <path
+                d="M13 2 L5 13 L11 13 L10 22 L19 10 L13 10 Z"
+                fill="currentColor"
+              />
+            </svg>
+          </span>
+          EV SITES
+          <span className="filter-chip-count">{EV_STATIONS.length}</span>
+        </button>
       </div>
 
       {/* ── INTRO OVERLAY (hero state) ── */}
@@ -2156,9 +3273,10 @@ export default function PlatformPage() {
           </h1>
 
           <p className="intro-sub">
-            Select any corridor across Ontario to see live stress diagnostics,
-            customer impact, and forecasted load disruption — all updating from
-            a single source of truth.
+            Select any corridor across Ontario to see live grid-stress
+            diagnostics alongside EV charging demand and feeder headroom —
+            so you can read where electric-vehicle growth is outpacing the
+            grid, and where there&apos;s room to build.
           </p>
 
           <div className="intro-actions">
@@ -2190,13 +3308,13 @@ export default function PlatformPage() {
           {/* tiny preview KPIs */}
           <div className="intro-stats">
             <div className="intro-stat">
-              <span className="intro-stat-val">5</span>
-              <span className="intro-stat-lbl">Corridors monitored</span>
+              <span className="intro-stat-val">{EV_STATIONS.length}</span>
+              <span className="intro-stat-lbl">EV sites mapped</span>
             </div>
             <div className="intro-stat-sep" />
             <div className="intro-stat">
               <span className="intro-stat-val">39,335</span>
-              <span className="intro-stat-lbl">Assets tracked</span>
+              <span className="intro-stat-lbl">Grid assets tracked</span>
             </div>
             <div className="intro-stat-sep" />
             <div className="intro-stat">
@@ -2217,6 +3335,28 @@ export default function PlatformPage() {
             Real-time condition and risk of Ontario&apos;s energy transmission
             and distribution infrastructure.
           </p>
+          <button
+            type="button"
+            className="panel-sim-cta"
+            onClick={() => setSimOpen(true)}
+            style={{ ["--cta" as string]: color } as Record<string, string>}
+          >
+            <span className="panel-sim-cta-bolt" aria-hidden>
+              <svg viewBox="0 0 24 24" width="13" height="13">
+                <path
+                  d="M4 13 H10 L9 21 L20 9 H14 L15 3 Z"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  fill="none"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            Run 5-year forecast
+            <span className="panel-sim-cta-arrow" aria-hidden>
+              →
+            </span>
+          </button>
         </div>
 
         <div className="metric-card">
@@ -2403,42 +3543,49 @@ export default function PlatformPage() {
           </ul>
         </div>
 
-        <div className="metric-card">
-          <div className="card-head">
-            <span className="card-title">ALERTS</span>
+        <div className="metric-card ev-outlook">
+          <div className="card-head ev-outlook-head">
+            <span className="card-title">
+              EV GROWTH OUTLOOK{" "}
+              <span className="card-title-sub">({evOutlook.sites} SITES)</span>
+            </span>
+            <span
+              className="ev-verdict"
+              style={{
+                color: factorColor[evOutlook.verdictTone],
+                borderColor: factorColor[evOutlook.verdictTone],
+              }}
+            >
+              {evOutlook.verdict}
+            </span>
           </div>
-          <ul className="alert-list">
-            {data.alerts.map((a, i) => (
-              <li key={i} className={`alert-row alert-${a.tone}`}>
-                <span className="alert-icon" aria-hidden>
-                  <svg viewBox="0 0 24 24">
-                    <path
-                      d="M12 3 L22 20 L2 20 Z"
-                      stroke="currentColor"
-                      strokeWidth="1.4"
-                      fill="none"
-                      strokeLinejoin="round"
-                    />
-                    <path
-                      d="M12 10 L12 15"
-                      stroke="currentColor"
-                      strokeWidth="1.4"
-                      strokeLinecap="round"
-                    />
-                    <circle cx="12" cy="17.5" r=".8" fill="currentColor" />
-                  </svg>
+
+          <p className="ev-outlook-summary">{evOutlook.summary}</p>
+
+          <ul className="ev-signal-list">
+            {evOutlook.signals.map((s) => (
+              <li key={s.label} className="ev-signal-row">
+                <span
+                  className="ev-signal-tick"
+                  style={{ background: factorColor[s.tone] }}
+                  aria-hidden
+                />
+                <span className="ev-signal-label">{s.label}</span>
+                <span
+                  className="ev-signal-value"
+                  style={{ color: factorColor[s.tone] }}
+                >
+                  {s.value}
                 </span>
-                <span className="alert-body">
-                  <span className="alert-title">{a.title}</span>
-                  <span className="alert-sub">{a.subtitle}</span>
-                </span>
-                <span className="alert-time">{a.time}</span>
               </li>
             ))}
-            <li className="alert-view-all">
-              <a href="#alerts">View all alerts ›</a>
-            </li>
           </ul>
+
+          <div className="ev-outlook-foot">
+            <span className="ev-outlook-foot-lbl">
+              Usage × grid headroom · live read
+            </span>
+          </div>
         </div>
       </aside>
 
@@ -2451,7 +3598,33 @@ export default function PlatformPage() {
         <span className="selected-pill-status">
           {data.level.toUpperCase()} · {data.stressIndex}
         </span>
+        <button
+          type="button"
+          className="selected-pill-sim"
+          onClick={() => setSimOpen(true)}
+          style={{ color }}
+        >
+          <span className="selected-pill-sim-bolt" aria-hidden>
+            <svg viewBox="0 0 24 24" width="12" height="12">
+              <path
+                d="M4 13 H10 L9 21 L20 9 H14 L15 3 Z"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                fill="none"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+          5-YR FORECAST
+        </button>
       </div>
+
+      {/* FORECAST SIMULATOR (modal overlay for the active corridor) */}
+      <ForecastSimulator
+        corridor={data}
+        open={simOpen}
+        onClose={() => setSimOpen(false)}
+      />
 
       {/* BOTTOM STATS STRIP */}
       <div className="bottom-strip" aria-hidden={!exploring}>
@@ -2604,6 +3777,35 @@ export default function PlatformPage() {
               ↑ {data.bottom.loadDelta}%
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* ── CAPACITY LEGEND (Toronto Hydro style — available capacity bands) ── */}
+      <div className="cap-legend" aria-hidden={!exploring}>
+        <div className="cap-legend-head">
+          <span className="cap-legend-title">FEEDER AVAILABLE CAPACITY</span>
+          <span className="cap-legend-src">Toronto Hydro + modelled</span>
+        </div>
+        <div className="cap-legend-row">
+          {(
+            ["abundant", "ample", "limited", "constrained"] as ChargerTier[]
+          ).map((t) => (
+            <span key={t} className="cap-legend-item">
+              <span
+                className="cap-legend-bolt"
+                style={{ color: tierColor[t] }}
+                aria-hidden
+              >
+                <svg viewBox="0 0 24 24" width="11" height="11">
+                  <path
+                    d="M13 2 L5 13 L11 13 L10 22 L19 10 L13 10 Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
+              {tierLabel[t]}
+            </span>
+          ))}
         </div>
       </div>
 
