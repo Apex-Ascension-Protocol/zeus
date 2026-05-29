@@ -2649,7 +2649,9 @@ function ForecastChart({
       .join(" ") +
     " Z";
 
-  const linePath = pts.map((p, i) => `${i ? "L" : "M"} ${p.x} ${p.y}`).join(" ");
+  const linePath = pts
+    .map((p, i) => `${i ? "L" : "M"} ${p.x} ${p.y}`)
+    .join(" ");
   const sel = pts[month];
   const gradId = `simgrad-${c.id}`;
   const startCol = levelColor[levelFor(pts[0].stress)];
@@ -2807,8 +2809,7 @@ function ForecastSimulator({
   }, [open, onClose]);
 
   const set = useCallback(
-    (k: keyof SimVars) => (val: number) =>
-      setVars((p) => ({ ...p, [k]: val })),
+    (k: keyof SimVars) => (val: number) => setVars((p) => ({ ...p, [k]: val })),
     [],
   );
 
@@ -2929,7 +2930,9 @@ function ForecastSimulator({
               <span className="sim-chart-readout-lbl">
                 PROJECTED STRESS INDEX
               </span>
-              <span className="sim-chart-readout-when">{monthToLabel(month)}</span>
+              <span className="sim-chart-readout-when">
+                {monthToLabel(month)}
+              </span>
             </div>
             <ForecastChart c={corridor} vars={vars} month={month} />
           </div>
@@ -3274,9 +3277,9 @@ export default function PlatformPage() {
 
           <p className="intro-sub">
             Select any corridor across Ontario to see live grid-stress
-            diagnostics alongside EV charging demand and feeder headroom —
-            so you can read where electric-vehicle growth is outpacing the
-            grid, and where there&apos;s room to build.
+            diagnostics alongside EV charging demand and feeder headroom — so
+            you can read where electric-vehicle growth is outpacing the grid,
+            and where there&apos;s room to build.
           </p>
 
           <div className="intro-actions">

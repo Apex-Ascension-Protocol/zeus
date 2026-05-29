@@ -6,6 +6,7 @@ import "./navbar.css";
 
 const NAV_LINKS = [
   { label: "Platform", href: "/platform" },
+  { label: "Risk Register", href: "/risk-register" },
   { label: "Data", href: "/data-sources" },
   { label: "Simulator", href: "/simulator" },
   { label: "Ev Trend", href: "/ev-trend-chart" },
