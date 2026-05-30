@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import EVResearch from "./ev-research";
 import "./ev-trend-chart.css";
 
 /* ─────────────────────────────────────────────
@@ -509,6 +510,9 @@ export default function EVTrendChart() {
           );
         })}
       </div>
+
+      {/* ── AI RESEARCH PANEL ── */}
+      <EVResearch scenario={scenario} />
     </div>
   );
 }
