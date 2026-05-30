@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect, type ReactNode } from "react";
+import {
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  type ReactNode,
+  type CSSProperties,
+} from "react";
 import Link from "next/link";
 import "./simulator.css";
 
@@ -229,11 +236,40 @@ function getLevel(cap: number): Level {
 }
 
 const LEVEL_COLOR: Record<Level, string> = {
-  critical: "#FF4D4D",
-  high: "#F4C040",
-  moderate: "#BA7517",
-  low: "#4ADE80",
+  critical: "#ff5c5c",
+  high: "#f5b13d",
+  moderate: "#5b9bd5",
+  low: "#46c18c",
 };
+const LEVEL_GLOW: Record<Level, string> = {
+  critical: "rgba(255,92,92,0.55)",
+  high: "rgba(245,177,61,0.5)",
+  moderate: "rgba(91,155,213,0.45)",
+  low: "rgba(70,193,140,0.45)",
+};
+const LEVEL_SOFT: Record<Level, string> = {
+  critical: "rgba(255,92,92,0.12)",
+  high: "rgba(245,177,61,0.12)",
+  moderate: "rgba(91,155,213,0.12)",
+  low: "rgba(70,193,140,0.12)",
+};
+const LEVEL_LABEL: Record<Level, string> = {
+  critical: "Critical",
+  high: "High",
+  moderate: "Moderate",
+  low: "Low",
+};
+const LEVELS: Level[] = ["critical", "high", "moderate", "low"];
+
+// Baseline metrics (PARAMS never change) — used for KPI deltas vs. baseline.
+const BASELINE = (() => {
+  const caps = FEEDERS.map((f) => simulate(f, PARAMS));
+  return {
+    critical: caps.filter((c) => getLevel(c) === "critical").length,
+    high: caps.filter((c) => getLevel(c) === "high").length,
+    avg: Math.round(caps.reduce((s, c) => s + c, 0) / caps.length),
+  };
+})();
 
 /* ─────────────────────────────────────────────
    AI ASSISTANT
@@ -250,20 +286,16 @@ const SUGGESTIONS = [
   "What should the utility prioritize?",
 ];
 
-// Always-available actions (persistent toolbar). `label` is the short button
-// text; `prompt` is what actually gets sent to the model.
 const QUICK_ACTIONS: { label: string; prompt: string }[] = [
   { label: "↻ Summary", prompt: "Summarize this scenario" },
   { label: "⚠ Risks", prompt: "Which feeders are most at risk, and why?" },
   { label: "◎ Priorities", prompt: "What should the utility prioritize?" },
 ];
 
-// Signature of the current scenario — changes whenever any slider moves.
 function scenarioSignature(params: Param[]): string {
   return params.map((p) => p.value).join("|");
 }
 
-// Rotating messages shown before the first token arrives.
 const WARMUP = [
   "Reading your scenario…",
   "Crunching feeder projections…",
@@ -271,8 +303,6 @@ const WARMUP = [
   "Composing the analysis…",
 ];
 
-// Split a streamed assistant string into reasoning (<think>…</think>) and answer.
-// Handles the in-progress case where </think> hasn't arrived yet.
 function parseThinking(text: string): { thinking: string; answer: string } {
   const open = text.indexOf("<think>");
   if (open === -1) return { thinking: "", answer: text };
@@ -281,20 +311,18 @@ function parseThinking(text: string): { thinking: string; answer: string } {
   const after = text.slice(open + "<think>".length);
   const close = after.indexOf("</think>");
   if (close === -1) {
-    return { thinking: after, answer }; // still thinking
+    return { thinking: after, answer };
   }
-  return { thinking: after.slice(0, close), answer: answer + after.slice(close + "</think>".length) };
+  return {
+    thinking: after.slice(0, close),
+    answer: answer + after.slice(close + "</think>".length),
+  };
 }
 
-/* ── Minimal markdown renderer (no dependency) ──
-   Handles: **bold**, *italic*, `code`, [links](url), #/##/### headings,
-   - / * bullet lists, 1. numbered lists, > quotes. Underscore-emphasis is
-   intentionally ignored so identifiers like gas_price don't turn italic. */
-
+/* ── Minimal markdown renderer (no dependency) ── */
 function renderInline(text: string): ReactNode[] {
   const out: ReactNode[] = [];
-  const re =
-    /\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\)/g;
+  const re = /\*\*(.+?)\*\*|\*(.+?)\*|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\)/g;
   let last = 0;
   let m: RegExpExecArray | null;
   let k = 0;
@@ -331,7 +359,6 @@ function Markdown({ text }: { text: string }) {
 
   for (let i = 0; i < lines.length; ) {
     const t = lines[i].trim();
-
     if (!t) {
       flush();
       i++;
@@ -422,12 +449,10 @@ function AssistantMessage({
   const [open, setOpen] = useState(true);
   const [tick, setTick] = useState(0);
 
-  // Collapse the thought process once the real answer starts.
   useEffect(() => {
     if (answerStarted) setOpen(false);
   }, [answerStarted]);
 
-  // Cycle warmup copy while we wait for the very first token.
   const waiting = streaming && !raw;
   useEffect(() => {
     if (!waiting) return;
@@ -453,7 +478,9 @@ function AssistantMessage({
           onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
         >
           <summary className="ai-think-summary">
-            <span className={`ai-think-dot ${!answerStarted ? "ai-think-live" : ""}`} />
+            <span
+              className={`ai-think-dot ${!answerStarted ? "ai-think-live" : ""}`}
+            />
             {answerStarted ? "Thought process" : "Thinking…"}
           </summary>
           <div className="ai-think-body">{thinking}</div>
@@ -470,6 +497,64 @@ function AssistantMessage({
           <span />
         </span>
       ) : null}
+    </div>
+  );
+}
+
+/* ── KPI card ── */
+function KpiCard({
+  label,
+  value,
+  unit,
+  sub,
+  accent,
+  valueColor,
+  delta,
+  invert,
+}: {
+  label: string;
+  value: number | string;
+  unit?: string;
+  sub: string;
+  accent: string;
+  valueColor?: string;
+  delta?: number;
+  invert?: boolean;
+}) {
+  const showDelta = typeof delta === "number" && delta !== 0;
+  const bad = invert ? (delta ?? 0) > 0 : (delta ?? 0) < 0;
+  return (
+    <div
+      className="kpi-card"
+      style={{ "--kpi-accent": accent } as CSSProperties}
+    >
+      <div className="kpi-top">
+        <span className="kpi-label">{label}</span>
+        {showDelta && (
+          <span
+            className="kpi-delta"
+            style={{
+              color: bad ? "var(--high)" : "var(--low)",
+              background: bad
+                ? "rgba(245,177,61,0.12)"
+                : "rgba(70,193,140,0.12)",
+            }}
+          >
+            {(delta ?? 0) > 0 ? "+" : "−"}
+            {Math.abs(delta ?? 0)}
+          </span>
+        )}
+      </div>
+      <div className="kpi-figure">
+        <span
+          className="kpi-val"
+          style={{ color: valueColor ?? "var(--ink-1)" }}
+        >
+          {value}
+        </span>
+        {unit && <span className="kpi-unit">{unit}</span>}
+      </div>
+      <p className="kpi-sub">{sub}</p>
     </div>
   );
 }
@@ -516,12 +601,10 @@ export default function SimulatorPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Scenario signature captured the last time we sent a request to the model.
   const [lastSentSig, setLastSentSig] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const currentSig = scenarioSignature(params);
-  // True when sliders have moved since the model last saw the data.
   const staleContext =
     messages.length > 0 && !loading && lastSentSig !== currentSig;
 
@@ -532,7 +615,6 @@ export default function SimulatorPage() {
     });
   }, [messages]);
 
-  // Compact, model-friendly snapshot of the live scenario.
   function buildContext(): string {
     const inputs = params
       .map((p) => {
@@ -573,9 +655,8 @@ ${feeders}`;
 
     setError(null);
     setInput("");
-    setLastSentSig(currentSig); // remember the data the model is seeing
+    setLastSentSig(currentSig);
     const history: ChatMessage[] = [...messages, { role: "user", content: q }];
-    // Render user msg + an empty assistant bubble to stream into.
     setMessages([...history, { role: "assistant", content: "" }]);
     setLoading(true);
 
@@ -610,7 +691,6 @@ ${feeders}`;
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
-      // Drop the empty/partial assistant bubble.
       setMessages((m) => {
         const copy = [...m];
         const last = copy[copy.length - 1];
@@ -622,7 +702,6 @@ ${feeders}`;
     }
   }
 
-  // Re-run the most recent question (or a summary) against the latest data.
   function rerun() {
     const lastUser = [...messages].reverse().find((m) => m.role === "user");
     send(lastUser?.content ?? "Summarize this scenario");
@@ -635,160 +714,227 @@ ${feeders}`;
   }
 
   return (
-    <>
-      <Link href="/" className="sim-home-link">
-        ← Home
-      </Link>
-      <div className="sim">
-        {/* ── LEFT: SLIDERS ── */}
-        <aside className="sim-left">
-          <div className="sim-head">
-            <div>
-              <p className="sim-eyebrow">Macro Shock Simulator</p>
-              <h1 className="sim-title">
-                Adjust variables.
-                <br />
-                See the impact.
-              </h1>
-            </div>
-            {dirty && (
-              <button className="sim-reset" onClick={reset} type="button">
-                ↺ Reset
-              </button>
-            )}
-          </div>
+    <div className="sim">
+      <div className="sim-bg" aria-hidden="true" />
 
-          <div className="sim-sliders">
-            {params.map((p) => {
-              const pct = ((p.value - p.min) / (p.max - p.min)) * 100;
-              const basePct = ((p.baseline - p.min) / (p.max - p.min)) * 100;
-              const delta = p.value - p.baseline;
-              return (
-                <div key={p.id} className="sl-row">
-                  <div className="sl-meta">
-                    <span className="sl-label">{p.label}</span>
-                    <div className="sl-right">
-                      <span className="sl-val">{fmt(p.value, p)}</span>
-                      {delta !== 0 && (
-                        <span
-                          className={`sl-delta ${delta > 0 ? "sl-up" : "sl-dn"}`}
-                        >
-                          {delta > 0 ? "↑" : "↓"}
-                        </span>
-                      )}
+      {/* ════ TOP BAR ════ */}
+      <header className="topbar">
+        <div className="topbar-left">
+          <Link href="/" className="brand">
+            <span className="brand-mark">⚡</span>
+            <span className="brand-name">ZEUS</span>
+            <span className="brand-tag">Grid Intelligence</span>
+          </Link>
+          <span className="topbar-divider" />
+          <nav className="crumb">
+            <span className="crumb-muted">Simulators</span>
+            <span className="crumb-sep">/</span>
+            <span>Macro Shock</span>
+          </nav>
+        </div>
+        <div className="topbar-right">
+          <div className={`scenario-pill ${dirty ? "pill-modified" : ""}`}>
+            <span className="pill-dot" />
+            {dirty ? "Modified scenario" : "Baseline scenario"}
+          </div>
+          {dirty && (
+            <button className="btn-ghost" onClick={reset} type="button">
+              ↺ Reset
+            </button>
+          )}
+        </div>
+      </header>
+
+      {/* ════ WORKSPACE ════ */}
+      <div className="workspace">
+        {/* LEFT · CONFIG */}
+        <aside className="config">
+          <div className="panel">
+            <div className="panel-head">
+              <div>
+                <p className="panel-eyebrow">Inputs</p>
+                <h2 className="panel-title">Scenario Variables</h2>
+              </div>
+            </div>
+            <div className="panel-body sliders">
+              {params.map((p) => {
+                const pct = ((p.value - p.min) / (p.max - p.min)) * 100;
+                const basePct = ((p.baseline - p.min) / (p.max - p.min)) * 100;
+                const delta = p.value - p.baseline;
+                return (
+                  <div key={p.id} className="field">
+                    <div className="field-top">
+                      <span className="field-label">{p.label}</span>
+                      <div className="field-val">
+                        <span className="field-num">{fmt(p.value, p)}</span>
+                        {delta !== 0 && (
+                          <span
+                            className={`field-chip ${delta > 0 ? "chip-up" : "chip-dn"}`}
+                          >
+                            {delta > 0 ? "▲" : "▼"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="track">
+                      <div
+                        className="track-fill"
+                        style={{ width: `${pct}%` }}
+                      />
+                      <div
+                        className="track-base"
+                        style={{ left: `${basePct}%` }}
+                      />
+                      <input
+                        type="range"
+                        min={p.min}
+                        max={p.max}
+                        step={p.step}
+                        value={p.value}
+                        onChange={(e) =>
+                          onChange(p.id, parseFloat(e.target.value))
+                        }
+                        aria-label={p.label}
+                      />
+                    </div>
+                    <div className="bounds">
+                      <span>{fmt(p.min, p)}</span>
+                      <span className="bounds-base">
+                        base {fmt(p.baseline, p)}
+                      </span>
+                      <span>{fmt(p.max, p)}</span>
                     </div>
                   </div>
-                  <div className="sl-track">
-                    <div className="sl-fill" style={{ width: `${pct}%` }} />
-                    <div className="sl-base" style={{ left: `${basePct}%` }} />
-                    <input
-                      type="range"
-                      min={p.min}
-                      max={p.max}
-                      step={p.step}
-                      value={p.value}
-                      onChange={(e) =>
-                        onChange(p.id, parseFloat(e.target.value))
-                      }
-                      aria-label={p.label}
-                    />
-                  </div>
-                  <div className="sl-bounds">
-                    <span>{fmt(p.min, p)}</span>
-                    <span>{fmt(p.max, p)}</span>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
 
-          <p className="sim-note">
-            XGBoost demand model · ARIMA adoption curve · OEB feeder data ·
-            5-year horizon
-          </p>
+          <div className="provenance">
+            <span className="prov-label">Methodology</span>
+            <p>
+              XGBoost demand model · ARIMA adoption curve · OEB feeder data ·
+              5-year horizon
+            </p>
+          </div>
         </aside>
 
-        {/* ── RIGHT: RESULTS ── */}
-        <main className="sim-right">
-          {/* KPIs */}
-          <div className="sim-kpis">
-            <div className="kpi">
-              <span
-                className="kpi-val"
-                style={{ color: critical > 0 ? "#FF4D4D" : "#4ADE80" }}
-              >
-                {critical}
-              </span>
-              <span className="kpi-label">Critical feeders</span>
-            </div>
-            <div className="kpi-sep" />
-            <div className="kpi">
-              <span
-                className="kpi-val"
-                style={{ color: high > 2 ? "#F4C040" : "inherit" }}
-              >
-                {high}
-              </span>
-              <span className="kpi-label">High load</span>
-            </div>
-            <div className="kpi-sep" />
-            <div className="kpi">
-              <span className="kpi-val">
-                {totalLoad}
-                <span className="kpi-unit">GW</span>
-              </span>
-              <span className="kpi-label">Projected EV load</span>
-            </div>
-            <div className="kpi-sep" />
-            <div className="kpi">
-              <span className="kpi-val">
-                {avgCap}
-                <span className="kpi-unit">%</span>
-              </span>
-              <span className="kpi-label">Avg capacity</span>
-            </div>
-          </div>
+        {/* RIGHT · RESULTS */}
+        <main className="results">
+          {/* KPI cards */}
+          <section className="kpi-grid">
+            <KpiCard
+              label="Critical Feeders"
+              value={critical}
+              sub="≥ 85% utilisation"
+              accent={critical > 0 ? "var(--crit)" : "var(--low)"}
+              valueColor={critical > 0 ? "var(--crit)" : "var(--low)"}
+              delta={critical - BASELINE.critical}
+              invert
+            />
+            <KpiCard
+              label="High Load"
+              value={high}
+              sub="75–84% utilisation"
+              accent="var(--high)"
+              valueColor={high > 2 ? "var(--high)" : "var(--ink-1)"}
+              delta={high - BASELINE.high}
+              invert
+            />
+            <KpiCard
+              label="Projected EV Load"
+              value={totalLoad}
+              unit="GW"
+              sub="5-year network peak"
+              accent="var(--accent)"
+            />
+            <KpiCard
+              label="Avg Capacity"
+              value={avgCap}
+              unit="%"
+              sub="network mean utilisation"
+              accent="var(--mod)"
+              delta={avgCap - BASELINE.avg}
+              invert
+            />
+          </section>
 
-          {/* Feeder list */}
-          <div className="feeder-list">
-            <div className="feeder-list-head">
-              <span>FEEDER</span>
-              <span>CAPACITY UTILISATION</span>
-              <span>5-YR</span>
-            </div>
-            {results.map(({ feeder, cap }) => {
-              const lv = getLevel(cap);
-              const color = LEVEL_COLOR[lv];
-              return (
-                <div key={feeder.id} className="feeder-row">
-                  <div className="feeder-info">
+          {/* Feeder table */}
+          <section className="panel feeder-panel">
+            <div className="panel-head">
+              <div>
+                <p className="panel-eyebrow">Distribution Network</p>
+                <h2 className="panel-title">Feeder Capacity Outlook</h2>
+              </div>
+              <div className="legend">
+                {LEVELS.map((lv) => (
+                  <span key={lv} className="legend-item">
                     <span
-                      className="feeder-dot"
-                      style={{ background: color }}
+                      className="legend-dot"
+                      style={{ background: LEVEL_COLOR[lv] }}
                     />
-                    <div className="feeder-text">
-                      <span className="feeder-name">{feeder.name}</span>
-                      <span className="feeder-region">{feeder.region}</span>
-                    </div>
-                  </div>
-                  <div className="feeder-bar-track">
-                    <div
-                      className="feeder-bar-fill"
-                      style={{ width: `${cap}%`, background: color }}
-                    />
-                    <div className="feeder-threshold" />
-                  </div>
-                  <span className="feeder-cap" style={{ color }}>
-                    {cap}%
+                    {LEVEL_LABEL[lv]}
                   </span>
-                </div>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="table">
+              <div className="thead">
+                <span>#</span>
+                <span>Feeder</span>
+                <span>Capacity utilisation · 80% limit</span>
+                <span>Status</span>
+                <span className="t-right">5-yr</span>
+              </div>
+              {results.map(({ feeder, cap }, i) => {
+                const lv = getLevel(cap);
+                const color = LEVEL_COLOR[lv];
+                return (
+                  <div key={feeder.id} className="trow">
+                    <span className="t-rank">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <div className="t-feeder">
+                      <span
+                        className="t-dot"
+                        style={
+                          {
+                            background: color,
+                            "--dot-glow": LEVEL_GLOW[lv],
+                          } as CSSProperties
+                        }
+                      />
+                      <div className="t-text">
+                        <span className="t-name">{feeder.name}</span>
+                        <span className="t-region">{feeder.region}</span>
+                      </div>
+                    </div>
+                    <div className="t-bar">
+                      <div
+                        className="t-bar-fill"
+                        style={{ width: `${cap}%`, background: color }}
+                      />
+                      <div className="t-threshold" />
+                    </div>
+                    <span
+                      className="t-badge"
+                      style={{ color, background: LEVEL_SOFT[lv] }}
+                    >
+                      {LEVEL_LABEL[lv]}
+                    </span>
+                    <span className="t-cap" style={{ color }}>
+                      {cap}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
         </main>
       </div>
 
-      {/* ── AI: LAUNCH BUTTON ── */}
+      {/* ════ AI: LAUNCH BUTTON ════ */}
       {!aiOpen && (
         <button
           className="ai-fab"
@@ -801,8 +947,12 @@ ${feeders}`;
         </button>
       )}
 
-      {/* ── AI: PANEL ── */}
-      <div className={`ai-panel ${aiOpen ? "ai-open" : ""}`} role="dialog" aria-label="ZEUS Analyst">
+      {/* ════ AI: PANEL ════ */}
+      <div
+        className={`ai-panel ${aiOpen ? "ai-open" : ""}`}
+        role="dialog"
+        aria-label="ZEUS Analyst"
+      >
         <div className="ai-head">
           <div>
             <p className="ai-eyebrow">ZEUS Analyst</p>
@@ -922,6 +1072,6 @@ ${feeders}`;
           </button>
         </form>
       </div>
-    </>
+    </div>
   );
 }
