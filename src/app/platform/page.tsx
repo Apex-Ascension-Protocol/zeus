@@ -3104,8 +3104,8 @@ export default function PlatformPage() {
         <div className="map-scrim" aria-hidden />
       </div>
 
-      {/* Zoom controls — only visible in explore mode */}
-      {exploring && (
+      {/* Zoom controls — only visible in explore mode and when simulator is closed */}
+      {exploring && !simOpen && (
         <div className="map-zoom-controls">
           <button
             type="button"
